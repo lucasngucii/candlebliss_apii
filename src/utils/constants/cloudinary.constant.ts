@@ -1,0 +1,11 @@
+export const CLOUDINARY = 'Cloudinary';
+export const UPLOAD = 'upload';
+export const UPLOADFILE = 'uploadFile';
+export const UPLOAD_IMAGE = 'uploadImage';
+export const UPLOAD_IMAGES = 'uploadImages';
+export const DESTROY_FILE = 'destroyFile';
+export const DESTROY_FILES = 'destroyFiles';
+export const UPLOAD_FILES = 'uploadFiles';
+export const UPLOAD_FILE_FROM_URL = 'uploadFileFromUrl';
+export const UPLOAD_IMG_FROM_PATH = 'img';
+export const UPLOAD_FILE_FROM_PATH = 'file';

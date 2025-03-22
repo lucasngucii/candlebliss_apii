@@ -51,6 +51,7 @@ export class ProductRelationalRepository implements ProductRepository {
   async findById(id: Product['id']): Promise<Product> {
     const entity = await this.productRepository.findOne({
       where: { id, isDeleted: false },
+      relations: ['details'],
     });
     if (!entity) {
       throw new NotFoundException(`Product ${id} not found.`);

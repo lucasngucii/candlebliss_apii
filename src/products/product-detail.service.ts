@@ -4,7 +4,6 @@ import { CreateProductDetailDto } from './dto/create-product-detail.dto';
 import { ImagesService } from '../images/images.service';
 import { Image } from '../images/domain/image';
 import { ProductRepository } from './infrastucture/persistence/product.repository';
-import { Product } from './domain/product';
 import { ProductDetail } from './domain/product-detail';
 import { UpdateProductDetailDto } from './dto/update-product-detail.dto';
 
@@ -59,10 +58,6 @@ export class ProductDetailService {
   }
   async remove(detailId: ProductDetail['id']): Promise<void> {
     await this.detailRepository.remove(detailId);
-  }
-
-  async findAllByProductId(productId: Product['id']): Promise<ProductDetail[]> {
-    return await this.detailRepository.findAllByProductId(productId);
   }
 
   async findByIds(detailIds: ProductDetail['id'][]): Promise<ProductDetail[]> {

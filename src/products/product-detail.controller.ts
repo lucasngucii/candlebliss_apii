@@ -25,7 +25,6 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { CreateProductDetailDto } from './dto/create-product-detail.dto';
 import { ProductDetailService } from './product-detail.service';
 import { UpdateProductDetailDto } from './dto/update-product-detail.dto';
-import { Product } from './domain/product';
 
 @ApiTags('Product Details')
 @Controller('product-details')
@@ -109,16 +108,6 @@ export class ProductDetailsController {
   @Delete(':id')
   delete(@Param('id') detailId: ProductDetail['id']) {
     return this.detailService.remove(detailId);
-  }
-
-  @ApiCreatedResponse({
-    type: [ProductDetail],
-  })
-  @Get('/product/:id')
-  findAllByProductId(
-    @Param('productId') productId: Product['id'],
-  ): Promise<ProductDetail[]> {
-    return this.detailService.findAllByProductId(productId);
   }
 
   @ApiCreatedResponse({

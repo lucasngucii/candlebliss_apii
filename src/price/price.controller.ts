@@ -7,8 +7,6 @@ import {
   Param,
   Patch,
   Post,
-  SerializeOptions,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,8 +16,6 @@ import {
 } from '@nestjs/swagger';
 import { PriceService } from './price.service';
 import { Roles } from '../roles/roles.decorator';
-import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard } from '../roles/roles.guard';
 import { Price } from './domain/prices';
 import { RoleEnum } from '../roles/roles.enum';
 import { CreatePriceDto } from './dto/create-price.dto';
@@ -29,7 +25,6 @@ import { HistoryPrices } from './domain/history_prices';
 import { ProductDetail } from '../products/domain/product-detail';
 
 @ApiTags('Prices')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiBearerAuth()
 @Controller({
   path: 'prices',
@@ -41,11 +36,7 @@ export class PriceController {
   @ApiCreatedResponse({
     type: Price,
   })
-  @SerializeOptions({
-    groups: ['admin'],
-  })
   @HttpCode(HttpStatus.CREATED)
-  @Roles(RoleEnum.admin)
   @Post()
   create(@Body() createPriceDto: CreatePriceDto) {
     return this.service.create(createPriceDto);
@@ -54,11 +45,7 @@ export class PriceController {
   @ApiCreatedResponse({
     type: Price,
   })
-  @SerializeOptions({
-    groups: ['admin'],
-  })
   @HttpCode(HttpStatus.CREATED)
-  @Roles(RoleEnum.admin)
   @Patch(':id')
   @ApiParam({
     name: 'id',
@@ -68,21 +55,6 @@ export class PriceController {
   update(@Body() createPriceDto: UpdatePriceDto, @Param('id') id: Price['id']) {
     return this.service.update(id, createPriceDto);
   }
-
-  @ApiCreatedResponse({
-    type: Price,
-  })
-  @ApiParam({
-    name: 'id',
-    type: Number,
-    required: true,
-  })
-  @HttpCode(HttpStatus.OK)
-  @Get(':id')
-  findById(@Param('id') id: Price['id']) {
-    return this.service.findById(id);
-  }
-
   @ApiCreatedResponse({
     type: [Price],
   })
@@ -164,5 +136,19 @@ export class PriceController {
     @Param('id') id: HistoryPrices['id'],
   ): Promise<HistoryPrices> {
     return this.service.findHistoryById(id);
+  }
+
+  @ApiCreatedResponse({
+    type: Price,
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+  })
+  @HttpCode(HttpStatus.OK)
+  @Get(':id')
+  findById(@Param('id') id: Price['id']) {
+    return this.service.findById(id);
   }
 }

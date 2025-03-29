@@ -1,15 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { CreateItemDto } from './create-item.dto';
 
 export class CreateOrdersDto {
-  @ApiProperty()
+  @ApiProperty({ example: 1, description: 'ID của người dùng' })
   @IsNotEmpty()
   user_id: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    example: '123 ABC Street',
+    description: 'Địa chỉ giao hàng',
+  })
   @IsOptional()
   @IsString()
   address?: string;
+
+  @ApiProperty({
+    type: [CreateItemDto],
+    description: 'Danh sách các sản phẩm trong đơn hàng',
+    example: [{ quantity: 2, product_detail_id: 'pd-123' }],
+  })
+  @IsNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => CreateItemDto)
+  item: CreateItemDto[];
 }
 
 export class AddVoucherDto {

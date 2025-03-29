@@ -10,10 +10,8 @@ import {
   Post,
   Query,
   SerializeOptions,
-  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiCreatedResponse,
   ApiParam,
   ApiQuery,
@@ -22,15 +20,9 @@ import {
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { Category } from './domain/category';
-import { RolesGuard } from '../roles/roles.guard';
-import { AuthGuard } from '@nestjs/passport';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { Roles } from '../roles/roles.decorator';
-import { RoleEnum } from '../roles/roles.enum';
 
 @ApiTags('categories')
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly service: CategoriesService) {}
@@ -42,7 +34,6 @@ export class CategoriesController {
   @SerializeOptions({
     groups: ['admin'],
   })
-  @Roles(RoleEnum.admin)
   @Post()
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.service.create(createCategoryDto);
@@ -57,10 +48,6 @@ export class CategoriesController {
     description: 'The ID of the category',
   })
   @HttpCode(HttpStatus.CREATED)
-  @SerializeOptions({
-    groups: ['admin'],
-  })
-  @Roles(RoleEnum.admin)
   @Patch(':id')
   update(
     @Param('id') id: Category['id'],
@@ -70,10 +57,6 @@ export class CategoriesController {
   }
 
   @HttpCode(HttpStatus.ACCEPTED)
-  @SerializeOptions({
-    groups: ['admin'],
-  })
-  @Roles(RoleEnum.admin)
   @Delete(':id')
   remove(@Param('id') id: Category['id']) {
     return this.service.remove(id);

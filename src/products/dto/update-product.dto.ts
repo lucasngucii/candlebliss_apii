@@ -1,6 +1,11 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { CreateProductDto } from './create-product.dto';
-import { IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { Image } from '../../images/domain/image';
 import { Type } from 'class-transformer';
 
@@ -22,6 +27,11 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsOptional()
   @IsString()
   video?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  category_id: number;
 
   @ApiPropertyOptional({ type: () => Image })
   @IsOptional()

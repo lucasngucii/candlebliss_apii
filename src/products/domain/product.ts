@@ -17,6 +17,9 @@ export class Product {
   })
   video?: string;
 
+  @ApiProperty()
+  category_id: number;
+
   @ApiProperty({ type: () => Image })
   images: Image[];
 }

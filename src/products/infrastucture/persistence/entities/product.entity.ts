@@ -8,7 +8,6 @@ import {
 import { EntityRelationalHelper } from 'src/utils/relational-entity-helper';
 import { ImageEntity } from 'src/images/infrastructure/persistence/entity/image.entity';
 import { ProductDetailEntity } from './detail.entity';
-import { CategoryEntity } from '../../../../categories/infrastructure/persistence/entities/categories.entity';
 
 @Entity({ name: 'product' })
 export class ProductEntity extends EntityRelationalHelper {
@@ -36,8 +35,6 @@ export class ProductEntity extends EntityRelationalHelper {
   )
   details: ProductDetailEntity[];
 
-  @OneToMany(() => CategoryEntity, (category) => category.product, {
-    eager: true,
-  })
-  categories: CategoryEntity[];
+  @Column({ type: Number, nullable: true })
+  category_id: number;
 }

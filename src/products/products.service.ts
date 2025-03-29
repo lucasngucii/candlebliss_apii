@@ -6,12 +6,14 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { ImagesService } from '../images/images.service';
 import { Image } from '../images/domain/image';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly productRepository: ProductRepository,
     private readonly imagesSerivce: ImagesService,
+    private readonly entityManager: EntityManager,
   ) {}
   async createProduct(
     dto: CreateProductDto,
@@ -26,7 +28,6 @@ export class ProductsService {
     if (imagesDto) {
       image = await this.imagesSerivce.uploadCloudImages(imagesDto);
     }
-
     return this.productRepository.create({
       ...dto,
       images: image,

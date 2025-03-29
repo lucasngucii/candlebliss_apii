@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { EntityManager, Repository } from 'typeorm';
 import { CreateOrdersDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -29,7 +29,9 @@ export class OrdersService {
       );
 
       if (!foundAddress) {
-        throw new Error('Không tìm thấy địa chỉ mặc định cho người dùng');
+        throw new NotFoundException(
+          'Không tìm thấy địa chỉ mặc định cho người dùng',
+        );
       }
 
       address = `${foundAddress.street}, ${foundAddress.ward}, ${foundAddress.district}, ${foundAddress.province}`;
@@ -39,7 +41,7 @@ export class OrdersService {
       this.orderRepository.create({
         user_id: createOrderDto.user_id,
         address: address ?? '',
-        status: OrderStatus.PROCESSING,
+        status: OrderStatus.CREATED,
       }),
     );
   }

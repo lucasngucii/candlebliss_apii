@@ -3,9 +3,13 @@ import { EntityRelationalHelper } from '../../utils/relational-entity-helper';
 import { OrderItem } from './order-item.entity';
 
 export enum OrderStatus {
-  ORDERED = 'Đã đặt hàng',
+  CREATED = 'Đơn hàng vừa được tạo',
+  PAYMENT_PENDING = 'Đang chờ thanh toán',
+  PAYMENT_FAILED = 'Thanh toán thất bại',
+  PAYMENT_SUCCESS = 'Thanh toán thành công',
   PROCESSING = 'Đang xử lý',
   SHIPPING = 'Đang giao hàng',
+  ORDERED = 'Đã đặt hàng',
   COMPLETED = 'Hoàn thành',
   CANCELLED = 'Đã huỷ',
   RETURNING = 'Đổi trả hàng',

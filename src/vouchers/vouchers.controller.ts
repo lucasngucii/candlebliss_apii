@@ -6,25 +6,21 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { RolesGuard } from '../roles/roles.guard';
+
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { Vouchers } from './domain/voucher';
-import { Roles } from '../roles/roles.decorator';
-import { RoleEnum } from '../roles/roles.enum';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
 
 @ApiTags('vouchers')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller({ path: 'vouchers', version: '1' })
 export class VouchersController {
   constructor(private readonly service: VouchersService) {}
@@ -32,8 +28,6 @@ export class VouchersController {
   @ApiCreatedResponse({
     type: Vouchers,
   })
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
   @Post()
   create(@Body() createVoucherDto: CreateVoucherDto) {
     return this.service.create(createVoucherDto);
@@ -42,8 +36,6 @@ export class VouchersController {
   @ApiCreatedResponse({
     type: Vouchers,
   })
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
   @Patch(':id')
   update(
     @Param('id') id: Vouchers['id'],
@@ -52,22 +44,16 @@ export class VouchersController {
     return this.service.update(id, updateVoucherDto);
   }
 
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
   @Patch(':id/active')
   setActive(@Param('id') id: Vouchers['id']) {
     return this.service.setActive(id);
   }
 
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
   @Patch(':id/inactive')
   setInactive(@Param('id') id: Vouchers['id']) {
     return this.service.setInactive(id);
   }
 
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
   @Delete(':id/remove')
   remove(@Param('id') id: Vouchers['id']) {
     return this.service.remove(id);
@@ -79,7 +65,6 @@ export class VouchersController {
     return this.service.findAll();
   }
 
-  @ApiBearerAuth()
   @ApiParam({
     name: 'id',
     type: String,
@@ -90,7 +75,6 @@ export class VouchersController {
     return this.service.findById(id);
   }
 
-  @ApiBearerAuth()
   @ApiParam({
     name: 'code',
     type: String,
@@ -125,7 +109,6 @@ export class VouchersController {
   //     return this.service.findVouchersByIds(idQuery);
   //   }
 
-  @ApiBearerAuth()
   @Get('date')
   filterByDate(
     @Param('start_date') start_date: Vouchers['start_date'],
@@ -134,7 +117,6 @@ export class VouchersController {
     return this.service.filterByDate(start_date, end_date);
   }
 
-  @ApiBearerAuth()
   @Get('active')
   findAllIsActive(@Param('isActive') isActive: Vouchers['isActive']) {
     return this.service.findAllIsActive(isActive);

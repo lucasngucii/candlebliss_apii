@@ -11,7 +11,7 @@ export class OrderItem extends EntityRelationalHelper {
   status: string;
 
   @Column({ type: Number, nullable: true })
-  productDetailId: number;
+  product_detail_id: number;
 
   @Column({ type: Number })
   quantity?: number;

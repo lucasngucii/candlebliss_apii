@@ -31,6 +31,7 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   category_id: number;
 
   @ApiPropertyOptional({ type: () => Image })

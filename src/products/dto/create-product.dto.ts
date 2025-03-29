@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
@@ -24,5 +25,6 @@ export class CreateProductDto {
   @ApiProperty({ type: Number })
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   category_id: number;
 }

@@ -1,17 +1,23 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class Create1742918333712 implements MigrationInterface {
-  name = 'Create1742918333712';
+export class Createfull1743222054712 implements MigrationInterface {
+  name = 'Createfull1743222054712';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `CREATE TABLE "orders" ("createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "isDeleted" boolean NOT NULL DEFAULT false, "id" SERIAL NOT NULL, "user_id" integer NOT NULL, "status" "public"."orders_status_enum" NOT NULL, "address" character varying, "total_quantity" integer, "total_price" numeric, "discount" numeric, "ship_price" numeric, "method_payment" character varying, CONSTRAINT "PK_710e2d4957aa5878dfe94e4ac2f" PRIMARY KEY ("id"))`,
-    );
     await queryRunner.query(
       `CREATE TABLE "order_item" ("createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "isDeleted" boolean NOT NULL DEFAULT false, "id" SERIAL NOT NULL, "status" character varying NOT NULL, "productDetailId" integer, "quantity" integer NOT NULL, "totalPrice" numeric NOT NULL, "orderId" integer, CONSTRAINT "PK_d01158fe15b1ead5c26fd7f4e90" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
+      `CREATE TYPE "public"."orders_status_enum" AS ENUM('Đã đặt hàng', 'Đang xử lý', 'Đang giao hàng', 'Hoàn thành', 'Đã huỷ', 'Đổi trả hàng', 'Trả hàng/hoàn tiền')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "orders" ("createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "isDeleted" boolean NOT NULL DEFAULT false, "id" SERIAL NOT NULL, "user_id" integer NOT NULL, "status" "public"."orders_status_enum" NOT NULL DEFAULT 'Đang xử lý', "address" character varying, "total_quantity" integer, "total_price" numeric, "discount" numeric, "ship_price" numeric, "method_payment" character varying, CONSTRAINT "PK_710e2d4957aa5878dfe94e4ac2f" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
       `CREATE TABLE "cart_item" ("createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "isDeleted" boolean NOT NULL DEFAULT false, "id" SERIAL NOT NULL, "productDetailId" integer, "quantity" integer NOT NULL, "totalPrice" numeric NOT NULL, "cartId" integer, CONSTRAINT "PK_bd94725aa84f8cf37632bcde997" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."cart_status_enum" AS ENUM('active', 'completed')`,
     );
     await queryRunner.query(
       `CREATE TABLE "cart" ("createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "isDeleted" boolean NOT NULL DEFAULT false, "id" SERIAL NOT NULL, "userId" integer NOT NULL, "status" "public"."cart_status_enum" NOT NULL DEFAULT 'active', "totalPrice" numeric NOT NULL DEFAULT '0', "totalQuantity" integer NOT NULL DEFAULT '0', CONSTRAINT "PK_c524ec48751b9b5bcfbf6e59be7" PRIMARY KEY ("id"))`,
@@ -266,8 +272,10 @@ export class Create1742918333712 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "status"`);
     await queryRunner.query(`DROP TABLE "role"`);
     await queryRunner.query(`DROP TABLE "cart"`);
+    await queryRunner.query(`DROP TYPE "public"."cart_status_enum"`);
     await queryRunner.query(`DROP TABLE "cart_item"`);
-    await queryRunner.query(`DROP TABLE "order_item"`);
     await queryRunner.query(`DROP TABLE "orders"`);
+    await queryRunner.query(`DROP TYPE "public"."orders_status_enum"`);
+    await queryRunner.query(`DROP TABLE "order_item"`);
   }
 }

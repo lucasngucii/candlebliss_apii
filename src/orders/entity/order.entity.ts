@@ -20,8 +20,8 @@ export class OrdersEntity extends EntityRelationalHelper {
   @Column({ type: Number })
   user_id: number;
 
-  @Column({ type: 'enum', enum: OrderStatus })
-  status: OrderStatus;
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PROCESSING })
+  status: string;
 
   @Column({ type: String, nullable: true })
   address: string;

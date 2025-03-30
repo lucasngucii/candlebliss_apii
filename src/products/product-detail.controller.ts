@@ -45,6 +45,7 @@ export class ProductDetailsController {
         size: { type: 'string' },
         type: { type: 'string' },
         quantities: { type: 'number' },
+        values: { type: 'string' },
         isActive: { type: 'boolean' },
         images: { type: 'array', items: { type: 'string', format: 'binary' } },
       },
@@ -77,6 +78,7 @@ export class ProductDetailsController {
         size: { type: 'string', nullable: true },
         type: { type: 'string', nullable: true },
         quantities: { type: 'number', nullable: true },
+        values: { type: 'string' },
         isActive: { type: 'boolean' },
         images: {
           type: 'array',

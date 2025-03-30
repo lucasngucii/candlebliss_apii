@@ -28,4 +28,9 @@ export class CreateProductDetailDto {
   @IsOptional()
   @Type(() => Boolean)
   isActive?: boolean;
+
+  @ApiProperty({ type: String })
+  @IsOptional()
+  @IsString()
+  values: string;
 }

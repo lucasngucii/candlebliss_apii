@@ -26,4 +26,9 @@ export class UpdateProductDetailDto extends PartialType(
   @IsOptional()
   @Type(() => Boolean)
   isActive?: boolean;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  values: string;
 }

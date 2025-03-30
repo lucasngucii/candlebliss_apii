@@ -13,7 +13,6 @@ export enum OrderStatus {
   COMPLETED = 'Hoàn thành',
   CANCELLED = 'Đã huỷ',
   RETURNING = 'Đổi trả hàng',
-  REFUNDING = 'Trả hàng/hoàn tiền',
 }
 
 @Entity('orders')

@@ -17,7 +17,6 @@ export class ProductDetailService {
 
   async create(dto: CreateProductDetailDto, imagesDto: Express.Multer.File[]) {
     let images: Image[] = [];
-    console.log(imagesDto);
     if (imagesDto.length) {
       images = await this.imagesService.uploadCloudImages(imagesDto);
     }

@@ -28,6 +28,9 @@ export class ProductDetailEntity extends EntityRelationalHelper {
   @Column({ type: Number, default: 0 })
   quantities?: number;
 
+  @Column({ type: String, default: '' })
+  values: string;
+
   @ManyToOne(() => ProductEntity, (product) => product.details)
   product?: ProductEntity;
 

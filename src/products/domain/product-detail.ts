@@ -23,4 +23,7 @@ export class ProductDetail {
 
   @ApiProperty({ type: Boolean, example: true })
   isActive?: boolean;
+
+  @ApiProperty({ type: String, example: 'value' })
+  values: string;
 }

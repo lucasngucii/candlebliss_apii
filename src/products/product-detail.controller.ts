@@ -7,11 +7,9 @@ import {
   Patch,
   Post,
   UploadedFiles,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
@@ -19,8 +17,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ProductDetail } from './domain/product-detail';
-import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard } from '../roles/roles.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CreateProductDetailDto } from './dto/create-product-detail.dto';
 import { ProductDetailService } from './product-detail.service';
@@ -33,8 +29,6 @@ export class ProductDetailsController {
   @ApiCreatedResponse({
     type: ProductDetail,
   })
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @UseInterceptors(FilesInterceptor('images', 10))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -62,8 +56,6 @@ export class ProductDetailsController {
   @ApiCreatedResponse({
     type: ProductDetail,
   })
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @UseInterceptors(FilesInterceptor('images', 10))
   @ApiConsumes('multipart/form-data')
   @ApiParam({
@@ -105,8 +97,6 @@ export class ProductDetailsController {
     type: 'number',
     description: 'Product Detail ID',
   })
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Delete(':id')
   delete(@Param('id') detailId: ProductDetail['id']) {
     return this.detailService.remove(detailId);

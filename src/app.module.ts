@@ -34,6 +34,7 @@ import { GiftsModule } from './gifts/gifts.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
+import { RedisModule } from './redis/redis.module';
 import queueConfig from './queue/config/queue.config';
 import cloudinaryConfig from './cloudinary/config/cloudinary.config';
 
@@ -106,6 +107,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     CategoriesModule,
     CartModule,
     OrdersModule,
+    RedisModule,
   ],
 })
 export class AppModule {}

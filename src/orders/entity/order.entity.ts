@@ -7,6 +7,9 @@ export enum OrderStatus {
   PAYMENT_PENDING = 'Đang chờ thanh toán',
   PAYMENT_FAILED = 'Thanh toán thất bại',
   PAYMENT_SUCCESS = 'Thanh toán thành công',
+  PAYMENT_REFUND_PENDING = 'Đang chờ hoàn tiền',
+  PAYMENT_REFUND_SUCCESS = 'Hoàn tiền thành công',
+  PAYMENT_REFUND_FAILED = 'Hoàn tiền thất bại',
   PROCESSING = 'Đang xử lý',
   SHIPPING = 'Đang giao hàng',
   ORDERED = 'Đã đặt hàng',
@@ -24,7 +27,7 @@ export class OrdersEntity extends EntityRelationalHelper {
   user_id: number;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PROCESSING })
-  status: string;
+  status: OrderStatus;
 
   @Column({ type: String, nullable: true })
   address: string;

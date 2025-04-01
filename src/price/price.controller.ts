@@ -8,12 +8,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiParam,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PriceService } from './price.service';
 import { Roles } from '../roles/roles.decorator';
 import { Price } from './domain/prices';
@@ -25,7 +20,6 @@ import { HistoryPrices } from './domain/history_prices';
 import { ProductDetail } from '../products/domain/product-detail';
 
 @ApiTags('Prices')
-@ApiBearerAuth()
 @Controller({
   path: 'prices',
   version: '1',

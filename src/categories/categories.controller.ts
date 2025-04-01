@@ -9,7 +9,6 @@ import {
   Patch,
   Post,
   Query,
-  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -31,9 +30,6 @@ export class CategoriesController {
     type: Category,
   })
   @HttpCode(HttpStatus.CREATED)
-  @SerializeOptions({
-    groups: ['admin'],
-  })
   @Post()
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.service.create(createCategoryDto);

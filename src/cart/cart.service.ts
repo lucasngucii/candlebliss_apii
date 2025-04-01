@@ -99,7 +99,11 @@ export class CartService {
   private async getPrice(productId: number) {
     const [priceRow] = await this.entityManager.query(
       `
-      SELECT COALESCE(pr.discount_price, pr.base_price) AS price
+      SELECT 
+            CASE 
+              WHEN pr.discount_price IS NULL OR pr.discount_price = 0 THEN pr.base_price
+              ELSE pr.base_price * (1 - pr.discount_price / 100.0)
+            END AS price        
       FROM prices pr
       WHERE pr.id = $1
       LIMIT 1

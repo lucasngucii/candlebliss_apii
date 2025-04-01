@@ -7,7 +7,7 @@ import { OrderItem } from './entity/order-item.entity';
 import { RedisModule } from '../redis/redis.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrdersEntity, OrderItem]), RedisModule, ],
+  imports: [TypeOrmModule.forFeature([OrdersEntity, OrderItem]), RedisModule],
   providers: [OrdersService],
   controllers: [OrdersController],
 })

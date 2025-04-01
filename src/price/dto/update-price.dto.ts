@@ -1,9 +1,8 @@
-import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { CreatePriceDto } from './create-price.dto';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNumber, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class UpdatePriceDto extends PartialType(CreatePriceDto) {
+export class UpdatePriceDto {
   @ApiPropertyOptional({ example: '100.000', type: Number })
   @IsOptional()
   @IsNumber()
@@ -25,10 +24,4 @@ export class UpdatePriceDto extends PartialType(CreatePriceDto) {
   @IsOptional()
   @Type(() => Date)
   end_date: Date;
-
-  @ApiPropertyOptional({ example: '1', type: Number })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  productId: number;
 }

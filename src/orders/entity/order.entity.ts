@@ -1,4 +1,5 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, BeforeInsert } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { EntityRelationalHelper } from '../../utils/relational-entity-helper';
 import { OrderItem } from './order-item.entity';
 
@@ -23,6 +24,9 @@ export class OrdersEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'varchar', nullable: true, default: '' })
+  order_code: string;
+
   @Column({ type: Number })
   user_id: number;
 
@@ -44,9 +48,18 @@ export class OrdersEntity extends EntityRelationalHelper {
   @Column({ type: 'decimal', nullable: true })
   ship_price: number;
 
+  // voucher added
+  @Column({ type: 'varchar', nullable: true, default: '' })
+  voucher_id: number;
+
   @Column({ type: String, nullable: true })
   method_payment: string;
 
   @OneToMany(() => OrderItem, (i) => i.order)
   item: OrderItem;
+
+  @BeforeInsert()
+  private generateOrderCode() {
+    this.order_code = 'ORD-' + uuidv4().split('-')[0].toUpperCase();
+  }
 }

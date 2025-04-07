@@ -41,4 +41,14 @@ export class ImagesService {
       throw error;
     }
   }
+
+  // async deleteImage(publicId: string) {
+  //   try {
+  //     await this.uploadService.deleteImage(publicId);
+  //     return await this.imageRepository.delete(publicId);
+  //   } catch (error) {
+  //     this.logger.error('Error deleting image from cloudinary:', error);
+  //     throw error;
+  //   }
+  // }
 }

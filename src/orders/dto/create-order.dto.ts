@@ -23,6 +23,14 @@ export class CreateOrdersDto {
   address?: string;
 
   @ApiProperty({
+    type: 'string',
+    description: 'code voucher',
+  })
+  @IsOptional()
+  @IsString()
+  voucher_code?: string;
+
+  @ApiProperty({
     type: [CreateItemDto],
     description: 'Danh sách các sản phẩm trong đơn hàng',
     example: [{ quantity: 2, product_detail_id: 'pd-123' }],

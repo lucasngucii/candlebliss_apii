@@ -9,7 +9,7 @@ export class CreateItemDto {
   @Type(() => Number)
   quantity: number;
 
-  @ApiProperty({ example: 'pd-123', description: 'ID của chi tiết sản phẩm' })
+  @ApiProperty({ example: 1, description: 'ID của chi tiết sản phẩm' })
   @IsNotEmpty()
   @IsNumber()
   product_detail_id: number;

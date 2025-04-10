@@ -316,7 +316,9 @@ export class OrdersService {
     productDetailMap: Map<number, any>;
     productMap: Map<number, any>;
   }> {
-    const productDetailIds = items.map((item) => item.product_detail_id);
+    const productDetailIds = items
+      .map((item) => item.product_detail_id)
+      .filter((id) => id !== undefined);
     const rows = await transaction.query(
       `
       SELECT 

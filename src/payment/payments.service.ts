@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
+import * as crypto from 'crypto';
 import { Repository } from 'typeorm';
 import { OrdersEntity, OrderStatus } from '../orders/entity/order.entity';
 import { MoMoRequest } from './dto/momo-request.dto';
 import { MoMoResponse } from './dto/momo-response.dto';
-import * as crypto from 'crypto';
 @Injectable()
 export class PaymentService {
   constructor(
@@ -104,16 +104,18 @@ export class PaymentService {
   }
 
   async pay(orderId: string): Promise<MoMoResponse | OrdersEntity> {
-    const foundOrder = (await this.orderRepository.query(
+    const queryResult = (await this.orderRepository.query(
       'SELECT total_price,user_id FROM orders WHERE orders.id = $1 AND orders.status::text LIKE $2',
       [orderId, OrderStatus.CREATED],
-    )) as OrdersEntity;
+    )) as OrdersEntity[];
 
+    if (queryResult.length <= 0)
+      throw new NotFoundException('Not found this order');
+    const foundOrder = queryResult[0];
     if (foundOrder.total_price < 1000) {
       foundOrder.status = OrderStatus.PAYMENT_SUCCESS;
       return await this.orderRepository.save(foundOrder);
     }
-    if (!foundOrder) throw new NotFoundException('Not found this order');
     await this.orderRepository.update(orderId, {
       status: OrderStatus.PAYMENT_PENDING,
     });
@@ -127,7 +129,9 @@ export class PaymentService {
           status: OrderStatus.PAYMENT_FAILED,
         });
     }, 60 * 60 * 1000);
-    const result = await axios(this.formData(`${orderId}`, 1000));
+    const result = await axios(
+      this.formData(`${orderId}`, foundOrder.total_price),
+    );
     return result.data;
   }
 }

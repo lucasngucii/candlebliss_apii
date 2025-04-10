@@ -41,7 +41,7 @@ export class OrdersService {
     const order = await this.orderRepository.findOne({
       where: { id, isDeleted: false },
       relations: ['item'],
-      order: { item: { createdAt: 'DESC'} },
+      order: { item: { createdAt: 'DESC' } },
     })
     if (!order) {
       throw new NotFoundException('Không tìm thấy đơn hàng');
@@ -185,7 +185,7 @@ export class OrdersService {
     await this.invalidateOrderCache(orderId, orderEntity.user_id);
     return await this.orderRepository.save(order);
   }
-  
+
   public async findOrdersByUserId(
     user_id: number,
     offset: number,
@@ -308,7 +308,7 @@ export class OrdersService {
       productMap: Map<number, any>;
     }
   > {
-    const productDetailIds = items.map((item) => item.product_detail_id);
+    const productDetailIds = items.map((item) => item.product_detail_id).filter((id) => id !== undefined);
     const rows = await transaction.query(
       `
       SELECT 
@@ -684,5 +684,4 @@ export class OrdersService {
 
     return voucher;
   }
-
 }

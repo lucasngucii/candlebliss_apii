@@ -12,7 +12,11 @@ import { CreateItemDto } from './dto/create-item.dto';
 import { RedisService } from '../redis/redis.service';
 import { ProductDetailEntity } from '../products/infrastucture/persistence/entities/detail.entity';
 import { VouchersEntity } from '../vouchers/infrastructure/persistence/entities/voucher.entity';
-import { QueryOrdersByStatusDto, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
+import {
+  QueryOrdersByStatusDto,
+  UpsertOrderByStatusDto,
+  UpsertOrderPaymentMethodDto,
+} from './dto/query.dto';
 import { console } from 'inspector';
 @Injectable()
 export class OrdersService {
@@ -23,14 +27,14 @@ export class OrdersService {
     @InjectRepository(OrderItem)
     private readonly itemRepository: Repository<OrderItem>,
     private redis: RedisService,
-  ) { }
+  ) {}
 
   async getOrdersByUserId(userId: number): Promise<OrdersEntity[]> {
     const orders = await this.orderRepository.find({
       where: { user_id: userId, isDeleted: false },
       relations: ['item'],
       order: { createdAt: 'DESC' },
-    })
+    });
     if (!orders) {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
@@ -42,16 +46,19 @@ export class OrdersService {
       where: { id, isDeleted: false },
       relations: ['item'],
       order: { item: { createdAt: 'DESC' } },
-    })
+    });
     if (!order) {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
     return order;
   }
 
-  async getOrderByUserIdAndStatus(query: QueryOrdersByStatusDto): Promise<OrdersEntity[]> {
+  async getOrderByUserIdAndStatus(
+    query: QueryOrdersByStatusDto,
+  ): Promise<OrdersEntity[]> {
     console.log(query);
-    const orders = await this.orderRepository.query(`
+    const orders = await this.orderRepository.query(
+      `
       SELECT o.*, 
       SUM(oi.quantity) AS total_quantity,
       SUM(oi."totalPrice") AS total_price 
@@ -62,7 +69,9 @@ export class OrdersService {
       AND o."isDeleted" = false
       AND oi."isDeleted" = false
       GROUP BY o.id
-      `, [query.user_id, query.status]);
+      `,
+      [query.user_id, query.status],
+    );
     if (!orders.length) {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
@@ -110,8 +119,8 @@ export class OrdersService {
           createOrderDto.voucher_code,
           totalAmount,
           createOrderDto.user_id,
-          loadProduct.productMap
-        )
+          loadProduct.productMap,
+        );
       }
       // Apply voucher discount if applicable
       let discountAmount = 0;
@@ -119,10 +128,12 @@ export class OrdersService {
         if (voucher.percent_off && Number(voucher.percent_off) > 0) {
           discountAmount = (totalAmount * Number(voucher.percent_off)) / 100;
 
-          if (voucher.max_voucher_amount && discountAmount > Number(voucher.max_voucher_amount)) {
+          if (
+            voucher.max_voucher_amount &&
+            discountAmount > Number(voucher.max_voucher_amount)
+          ) {
             discountAmount = Number(voucher.max_voucher_amount);
           }
-
         } else if (voucher.amount_off && Number(voucher.amount_off) > 0) {
           discountAmount = Number(voucher.amount_off);
         }
@@ -130,7 +141,6 @@ export class OrdersService {
         discountAmount = Math.min(discountAmount, totalAmount);
         order.total_price = totalAmount - discountAmount;
         order.voucher_id = voucher.id;
-
       } else {
         order.total_price = totalAmount;
       }
@@ -144,7 +154,7 @@ export class OrdersService {
       return await tran.findOne(OrdersEntity, {
         where: { id: order.id },
         relations: ['item'],
-      })
+      });
     });
   }
 
@@ -302,13 +312,13 @@ export class OrdersService {
   private async batchLoadProductDetails(
     items: CreateItemDto[],
     transaction: EntityManager,
-  ): Promise<
-    {
-      productDetailMap: Map<number, any>;
-      productMap: Map<number, any>;
-    }
-  > {
-    const productDetailIds = items.map((item) => item.product_detail_id).filter((id) => id !== undefined);
+  ): Promise<{
+    productDetailMap: Map<number, any>;
+    productMap: Map<number, any>;
+  }> {
+    const productDetailIds = items
+      .map((item) => item.product_detail_id)
+      .filter((id) => id !== undefined);
     const rows = await transaction.query(
       `
       SELECT 
@@ -343,7 +353,7 @@ export class OrdersService {
         base_price: row.base_price,
         discount_price: row.discount_price,
         product_id: row.product_id,
-      })
+      });
 
       if (!productMap.has(row.product_id)) {
         productMap.set(row.product_id, {
@@ -603,14 +613,18 @@ export class OrdersService {
     voucher_code: string,
     total_price: number,
     user_id?: number,
-    product_ids?: Map<number, any>,): Promise<VouchersEntity> {
-    const today = new Date()
-    const entity = await this.entityManager.query(`
+    product_ids?: Map<number, any>,
+  ): Promise<VouchersEntity> {
+    const today = new Date();
+    const entity = await this.entityManager.query(
+      `
         SELECT v.* FROM vouchers v
         WHERE v.code = $1
           AND v."isActive" = true
           AND v."isDeleted" = false
-      `, [voucher_code])
+      `,
+      [voucher_code],
+    );
 
     const voucher = entity[0];
 
@@ -631,32 +645,41 @@ export class OrdersService {
     }
 
     if (voucher.min_order_value > total_price) {
-      throw new BadRequestException('Đơn hàng không đủ điều kiện sử dụng voucher');
+      throw new BadRequestException(
+        'Đơn hàng không đủ điều kiện sử dụng voucher',
+      );
     }
     if (voucher.usage_per_customer > 0 && user_id) {
-      const usedCount = await this.entityManager.query(`
+      const usedCount = await this.entityManager.query(
+        `
         SELECT COUNT(*) FROM orders
         WHERE voucher_id = $1
           AND user_id = $2
           AND "isDeleted" = false
-      `, [voucher.id, user_id])
+      `,
+        [voucher.id, user_id],
+      );
       if (usedCount >= voucher.usage_per_customer) {
         throw new BadRequestException('Voucher đã hết lượt sử dụng');
       }
     }
 
     if (voucher.applicable_products && voucher.applicable_products.length > 0) {
-      const productIds = voucher.applicable_products.map((product: any) => product.id);
+      const productIds = voucher.applicable_products.map(
+        (product: any) => product.id,
+      );
       if (product_ids) {
-        const isProductApplicable = productIds.some((id: number) => id === product_ids.get(id));
+        const isProductApplicable = productIds.some(
+          (id: number) => id === product_ids.get(id),
+        );
         if (!isProductApplicable) {
-          throw new BadRequestException('Voucher không áp dụng cho sản phẩm này');
+          throw new BadRequestException(
+            'Voucher không áp dụng cho sản phẩm này',
+          );
         }
       } else {
         throw new BadRequestException('Voucher không áp dụng cho sản phẩm này');
       }
-
-
     }
     // if (voucher.applicable_categories && voucher.applicable_categories.length > 0) {
     //   const categories = voucher.applicable_categories.map((category: any) => category.id);
@@ -667,13 +690,16 @@ export class OrdersService {
     // }
 
     if (voucher.new_customers_only && user_id) {
-      const result = await this.entityManager.query(`
+      const result = await this.entityManager.query(
+        `
         SELECT EXISTS (
           SELECT 1 FROM orders
           WHERE user_id = $1
             AND "isDeleted" = false
         ) AS "exists"
-      `, [user_id]);
+      `,
+        [user_id],
+      );
 
       const isExistingCustomer = result[0].exists;
 

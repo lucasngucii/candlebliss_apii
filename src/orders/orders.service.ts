@@ -79,17 +79,17 @@ export class OrdersService {
   }
 
   async upsert(createOrderDto: CreateOrdersDto) {
-    const today = new Date().toISOString().split('T')[0];
+    // const today = new Date().toISOString().split('T')[0];
 
-    const key = `order:lock:user:${createOrderDto.user_id}:${today}`;
+    // const key = `order:lock:user:${createOrderDto.user_id}:${today}`;
 
-    const lockAcquired = await this.redis.set(key, 'lock', 10);
+    // const lockAcquired = await this.redis.set(key, 'lock', 10);
 
-    if (!lockAcquired) {
-      throw new BadRequestException(
-        'Thao tác đang được xử lý, vui lòng thử lại sau',
-      );
-    }
+    // if (!lockAcquired) {
+    //   throw new BadRequestException(
+    //     'Thao tác đang được xử lý, vui lòng thử lại sau',
+    //   );
+    // }
     return await this.entityManager.transaction(async (tran) => {
       let order = await this.findOrCreateOrder(createOrderDto, tran);
 
@@ -147,6 +147,7 @@ export class OrdersService {
       order.total_quantity = totalQuantity;
       order.ship_price = 30000;
       order.discount = discountAmount;
+      order.total_price = order.total_price + order.ship_price;
       order.method_payment = '';
       order = await tran.save(OrdersEntity, order);
 

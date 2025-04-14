@@ -55,6 +55,9 @@ export class OrdersEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   method_payment: string;
 
+  @Column({ type: Number, nullable: true })
+  rating: number;
+
   @OneToMany(() => OrderItem, (i) => i.order)
   item: OrderItem;
 

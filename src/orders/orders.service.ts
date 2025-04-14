@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EntityManager, In, Repository } from 'typeorm';
+import { Between, EntityManager, In, Repository } from 'typeorm';
 import { CreateOrdersDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrdersEntity, OrderStatus } from './entity/order.entity';
@@ -13,6 +13,8 @@ import { RedisService } from '../redis/redis.service';
 import { ProductDetailEntity } from '../products/infrastucture/persistence/entities/detail.entity';
 import { VouchersEntity } from '../vouchers/infrastructure/persistence/entities/voucher.entity';
 import {
+  AddRatingDto,
+  QueryOrdersByStatusAllDto,
   QueryOrdersByStatusDto,
   UpsertOrderByStatusDto,
   UpsertOrderPaymentMethodDto,
@@ -24,11 +26,129 @@ export class OrdersService {
     private readonly entityManager: EntityManager,
     @InjectRepository(OrdersEntity)
     private readonly orderRepository: Repository<OrdersEntity>,
-    @InjectRepository(OrderItem)
-    private readonly itemRepository: Repository<OrderItem>,
     private redis: RedisService,
-  ) {}
+  ) { }
+  async getAllOrders(): Promise<OrdersEntity[]> {
+    const orders = await this.entityManager.find(OrdersEntity, {
+      where: { isDeleted: false },
+      relations: ['item'],
+      order: { createdAt: 'DESC' },
+    })
+    if (!orders) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    return orders;
+  }
 
+  async getAllOrderByStatus(query: QueryOrdersByStatusAllDto): Promise<OrdersEntity[]> {
+    const orders = await this.orderRepository.find({
+      where: { status: query.status as OrderStatus, isDeleted: false },
+      relations: ['item'],
+      order: { createdAt: 'DESC' },
+    });
+    if (!orders) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    return orders;
+  }
+  async caculateOrdersDateToDate(startDate: Date, endDate: Date) {
+    const entities = await this.getAlllOrderByDate(startDate, endDate);
+    const filteredEntities = entities.filter(
+      (order) => order.status === OrderStatus.COMPLETED,
+    );
+    const totalPriceAndShipped = filteredEntities.reduce((sum, order) => {
+      return sum + Number(order.total_price);
+    }, 0);
+
+    const totalQuantity = filteredEntities.reduce((sum, order) => {
+      return sum + Number(order.total_quantity);
+    }, 0);
+
+    const totalPriceShipped = filteredEntities.reduce((sum, order) => {
+      return sum + Number(order.ship_price || 0);
+    }, 0);
+
+    return {
+      totalRevenue: totalPriceAndShipped, // Tổng doanh thu (bao gồm phí vận chuyển)
+      totalOrderValue: totalPriceAndShipped - totalPriceShipped, // Tổng giá trị đơn hàng (không bao gồm phí vận chuyển)
+      totalShippingFee: totalPriceShipped, // Tổng phí vận chuyển
+      totalOrders: filteredEntities.length, // Tổng số đơn hàng
+      totalQuantity: totalQuantity, // Tổng số lượng sản phẩm
+    };
+  }
+  /**
+   * Lấy thống kê theo tháng
+   */
+  async getStatisticsByMonth(year: number, month: number) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+    return this.caculateOrdersDateToDate(startDate, endDate);
+  }
+  /**
+     * Lấy thống kê theo tuần
+     * @param weekNumber Số tuần trong năm (1-52)
+     */
+  async getStatisticsByWeek(year: number, weekNumber: number) {
+    // Tính ngày đầu tiên của tuần
+    const firstDayOfYear = new Date(year, 0, 1);
+    const daysOffset = (weekNumber - 1) * 7;
+
+    // Tính ngày bắt đầu của tuần (thứ 2)
+    const startDate = new Date(year, 0, 1 + daysOffset - firstDayOfYear.getDay() + 1);
+
+    // Tính ngày kết thúc của tuần (chủ nhật)
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    endDate.setHours(23, 59, 59, 999);
+
+    return this.caculateOrdersDateToDate(startDate, endDate);
+  }
+  /**
+  * Lấy thống kê theo năm
+  */
+  async getStatisticsByYear(year: number) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+
+    return this.caculateOrdersDateToDate(startDate, endDate);
+  }
+
+  /**
+   * Hàm chung để lấy thống kê theo khoảng thời gian
+   * @param timeFilter Loại bộ lọc: 'month', 'week', 'year'
+   * @param timeValue Giá trị thời gian tương ứng
+   * @param year Năm
+   */
+  async getStatistics(timeFilter: 'month' | 'week' | 'year', timeValue: number, year: number) {
+    switch (timeFilter) {
+      case 'month':
+        return this.getStatisticsByMonth(year, timeValue);
+      case 'week':
+        return this.getStatisticsByWeek(year, timeValue);
+      case 'year':
+        return this.getStatisticsByYear(timeValue);
+      default:
+        throw new Error('Loại bộ lọc thời gian không hợp lệ');
+    }
+  }
+  async getAlllOrderByDate(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<OrdersEntity[]> {
+    const orders = await this.orderRepository.find({
+      where: {
+        createdAt: Between(startDate, endDate),
+        isDeleted: false,
+      },
+      relations: ['item'],
+      order: { createdAt: 'DESC' },
+    });
+    if (!orders) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    return orders;
+  }
   async getOrdersByUserId(userId: number): Promise<OrdersEntity[]> {
     const orders = await this.orderRepository.find({
       where: { user_id: userId, isDeleted: false },
@@ -79,19 +199,13 @@ export class OrdersService {
   }
 
   async upsert(createOrderDto: CreateOrdersDto) {
-    // const today = new Date().toISOString().split('T')[0];
 
-    // const key = `order:lock:user:${createOrderDto.user_id}:${today}`;
-
-    // const lockAcquired = await this.redis.set(key, 'lock', 10);
-
-    // if (!lockAcquired) {
-    //   throw new BadRequestException(
-    //     'Thao tác đang được xử lý, vui lòng thử lại sau',
-    //   );
-    // }
     return await this.entityManager.transaction(async (tran) => {
       let order = await this.findOrCreateOrder(createOrderDto, tran);
+      order.total_price = 0;
+      order.discount = 0;
+      order.ship_price = 0;
+      order.total_quantity = 0;
 
       const loadProduct = await this.batchLoadProductDetails(
         createOrderDto.item,
@@ -175,6 +289,45 @@ export class OrdersService {
     this.validateStatusTransition(orderEntity.status, statusDto.status);
     orderEntity.status = statusDto.status;
     await this.invalidateOrderCache(orderId, orderEntity.user_id);
+    return await this.orderRepository.save(orderEntity);
+  }
+/*
+  TODO: cần fix lại
+*/
+  async findAndUpdateOrderStatusCompletedById(
+    orderId: number,
+    ratingDto: AddRatingDto,
+  ): Promise<OrdersEntity> {
+    const query = `
+      SELECT o.* FROM orders o
+      WHERE o.id = $1
+    `;
+    const order = await this.orderRepository.query(query, [orderId]);
+    if (!order) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    const orderEntity = order[0];
+    orderEntity.status = OrderStatus.COMPLETED;
+    orderEntity.rating = ratingDto.rating;
+
+    const listProductIds = orderEntity.item.map((item) => item.product_detail_id);
+
+    const listProductDetails = await this.entityManager.query(
+      `
+      SELECT * FROM product_detail
+      WHERE id IN (${listProductIds.join(',')})
+    `,
+    );
+    const listProductIdsMap = new Map<number, any>();
+    listProductDetails.forEach((item) => {
+      listProductIdsMap.set(item.id, item);
+    });
+    const listProductDetailIds = orderEntity.item.map((item) => item.product_detail_id);
+    const listProductDetailIdsMap = new Map<number, any>();
+    listProductDetailIds.forEach((item) => {
+      listProductDetailIdsMap.set(item, item);
+    });
+
     return await this.orderRepository.save(orderEntity);
   }
 

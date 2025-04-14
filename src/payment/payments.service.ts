@@ -1,6 +1,5 @@
 import {
   BadGatewayException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';

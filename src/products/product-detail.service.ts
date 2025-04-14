@@ -6,6 +6,7 @@ import { Image } from '../images/domain/image';
 import { ProductRepository } from './infrastucture/persistence/product.repository';
 import { ProductDetail } from './domain/product-detail';
 import { UpdateProductDetailDto } from './dto/update-product-detail.dto';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class ProductDetailService {
@@ -13,6 +14,7 @@ export class ProductDetailService {
     private readonly detailRepository: ProductDetailRepository,
     private readonly imagesService: ImagesService,
     private readonly productRepository: ProductRepository,
+    private readonly entityManager: EntityManager,
   ) {}
 
   async create(dto: CreateProductDetailDto, imagesDto: Express.Multer.File[]) {
@@ -40,10 +42,29 @@ export class ProductDetailService {
     if (images.length) {
       newImages = await this.imagesService.uploadCloudImages(images);
     }
-    return await this.detailRepository.update(detailId, {
-      ...updateDetailDto,
-      images: newImages,
+  return await this.entityManager.transaction(async (transactionalEntityManager) => {
+    const existingDetail = await transactionalEntityManager.findOne(ProductDetail, {
+      where: { id: detailId }
     });
+
+    if (existingDetail) {
+      const updatedDetail = {
+        ...existingDetail,
+        ...updateDetailDto,
+        images: newImages.length ? newImages : existingDetail.images,
+      };
+      
+      return await transactionalEntityManager.save(ProductDetail, updatedDetail);
+    } else {
+      const newDetail = transactionalEntityManager.create(ProductDetail, {
+        id: detailId,
+        ...updateDetailDto,
+        images: newImages,
+      });
+      
+      return await transactionalEntityManager.save(ProductDetail, newDetail);
+    }
+  });
   }
 
   async findById(detailId: ProductDetail['id']): Promise<ProductDetail> {
@@ -64,7 +85,6 @@ export class ProductDetailService {
     const results = await Promise.allSettled(
       detailIds.map((detailId) => this.detailRepository.findById(detailId)),
     );
-    console.log(results);
     const productDetails = results
       .filter(
         (result) => result.status === 'fulfilled' && result.value !== null,

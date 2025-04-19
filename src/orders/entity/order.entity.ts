@@ -17,6 +17,9 @@ export enum OrderStatus {
   COMPLETED = 'Hoàn thành',
   CANCELLED = 'Đã huỷ',
   RETURNING = 'Đổi trả hàng',
+  RETURN_ACCEPTED = 'Đã chấp nhận đổi trả',
+  RETURN_REJECTED = 'Đã từ chối đổi trả',
+  RETURN_COMPLETED = 'Đã hoàn thành đổi trả và hoàn tiền',
 }
 
 @Entity('orders')
@@ -29,6 +32,9 @@ export class OrdersEntity extends EntityRelationalHelper {
 
   @Column({ type: Number })
   user_id: number;
+
+  @Column({ type: String, nullable: true })
+  cancelReason: string;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PROCESSING })
   status: OrderStatus;
@@ -55,11 +61,9 @@ export class OrdersEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   method_payment: string;
 
-  @Column({ type: Number, nullable: true })
-  rating: number;
 
   @OneToMany(() => OrderItem, (i) => i.order)
-  item: OrderItem;
+  item: OrderItem[];
 
   @BeforeInsert()
   private generateOrderCode() {

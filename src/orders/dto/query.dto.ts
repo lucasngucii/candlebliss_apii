@@ -136,3 +136,13 @@ export class StatisticsResponseDto {
     })
     totalOrders: number;
 }
+
+export class QueryCancelOrderDto {
+    @ApiProperty({ example: 'Đã huỷ đơn hàng' })
+    @IsString()
+    reason: string;
+
+    @ApiProperty({ example: OrderStatus.CANCELLED })
+    @IsEnum(OrderStatus)
+    status: OrderStatus;
+}

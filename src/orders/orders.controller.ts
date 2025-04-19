@@ -13,7 +13,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrdersDto } from './dto/create-order.dto';
 import { ApiCreatedResponse, ApiParam, ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { OrdersEntity } from './entity/order.entity';
-import { AddRatingDto, QueryOrderByLimitAndOffsetDto, QueryOrdersByStatusAllDto, QueryOrdersByStatusDto, StatisticsQueryDto, TimeFilterEnum, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
+import { AddRatingDto, QueryCancelOrderDto, QueryOrderByLimitAndOffsetDto, QueryOrdersByStatusAllDto, QueryOrdersByStatusDto, StatisticsQueryDto, TimeFilterEnum, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
 import { StatisticsResponseDto } from './dto/res.dto';
 
 @Controller('orders')
@@ -82,6 +82,25 @@ export class OrdersController {
       totalOrders: statistics.totalOrders, // Tổng số đơn hàng
       totalQuantities: statistics.totalQuantity, // Tổng số sản phẩm
     };
+  }
+
+  @Patch('cancel-or-return/:id')
+
+  @ApiCreatedResponse({
+    type: OrdersEntity,
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'ID of the order to update',
+    type: Number,
+  })
+  @HttpCode(HttpStatus.OK)
+  async cancelOrReturnOrder(
+    @Param('id') id: number,
+    @Query() cancelOrder: QueryCancelOrderDto
+  ) {
+    return await this.service.cancelOrReturnOrder(id, cancelOrder);
   }
 
   @Get('all')

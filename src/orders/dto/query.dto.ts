@@ -138,11 +138,18 @@ export class StatisticsResponseDto {
 }
 
 export class QueryCancelOrderDto {
-    @ApiProperty({ example: 'Đã huỷ đơn hàng' })
+    @ApiProperty({
+      example: 'Khách yêu cầu huỷ vì sản phẩm không đúng mô tả',
+      description: 'Lý do huỷ đơn hàng hoặc yêu cầu đổi trả',
+    })
     @IsString()
     reason: string;
-
-    @ApiProperty({ example: OrderStatus.CANCELLED })
+  
+    @ApiProperty({
+      example: OrderStatus.CANCELLED,
+      enum: OrderStatus,
+      description: 'Trạng thái cập nhật của đơn hàng (huỷ hoặc trả hàng)',
+    })
     @IsEnum(OrderStatus)
     status: OrderStatus;
-}
+  }

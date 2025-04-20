@@ -26,7 +26,7 @@ export class ProductDetailEntity extends EntityRelationalHelper {
   isActive?: boolean;
 
   @Column({ type: Number, default: 0 })
-  quantities?: number;
+  quantities: number;
 
   @Column({ type: String, default: '' })
   values: string;

@@ -65,6 +65,13 @@ export class OrdersEntity extends EntityRelationalHelper {
   @OneToMany(() => OrderItem, (i) => i.order)
   item: OrderItem[];
 
+  @Column({ type: 'jsonb', nullable: true })
+  cancel_images: Array<{
+    id: string;
+    path?: string;
+    public_id?: string;
+  }>;
+
   @BeforeInsert()
   private generateOrderCode() {
     this.order_code = 'ORD-' + uuidv4().split('-')[0].toUpperCase();

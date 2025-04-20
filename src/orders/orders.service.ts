@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Between, EntityManager, In, Repository } from 'typeorm';
@@ -21,6 +22,9 @@ import {
   UpsertOrderPaymentMethodDto,
 } from './dto/query.dto';
 
+import { Image } from '../images/domain/image'; 
+import { ImagesService } from '../images/images.service';
+
 
 interface InventoryUpdate {
   productDetailId: number;
@@ -33,6 +37,7 @@ export class OrdersService {
     @InjectRepository(OrdersEntity)
     private readonly orderRepository: Repository<OrdersEntity>,
     private redis: RedisService,
+    private readonly imagesService: ImagesService,
   ) { }
   async getAllOrders(): Promise<OrdersEntity[]> {
     const orders = await this.entityManager.find(OrdersEntity, {
@@ -203,50 +208,62 @@ export class OrdersService {
     }
     return orders[0];
   }
-  async cancelOrReturnOrder(id: number, dto: QueryCancelOrderDto): Promise<OrdersEntity> {
-    return await this.entityManager.transaction(async (tran) => {
-      const order = await tran.findOne(OrdersEntity, {
-        where: { id: id, isDeleted: false },
-        relations: ['item'],
+  async cancelOrReturnOrder(id: number, dto: QueryCancelOrderDto, imagesDto: Express.Multer.File[]): Promise<OrdersEntity> {
+    try {
+      let images: Image[] = [];
+      if (imagesDto.length) {
+        images = await this.imagesService.uploadCloudImages(imagesDto);
+      }
+
+      return await this.entityManager.transaction(async (tran) => {
+        const order = await tran.findOne(OrdersEntity, {
+          where: { id: id, isDeleted: false },
+          relations: ['item'],
+        })
+        if (!order) {
+          throw new NotFoundException('Không tìm thấy đơn hàng');
+        }
+
+        // const allowedStatusesToCancel = [
+        //   OrderStatus.CREATED,
+        //   OrderStatus.PAYMENT_PENDING,
+        //   OrderStatus.PROCESSING,
+        //   OrderStatus.SHIPPING,
+        // ];
+
+        // if (!allowedStatusesToCancel.includes(order.status)) {
+        //   throw new BadRequestException(
+        //     `Không thể hủy đơn hàng với trạng thái hiện tại: ${order.status}`
+        //   );
+        // }
+
+        order.status = dto.status;
+        order.cancelReason = dto.reason || 'Người dùng đã hủy đơn hàng';
+        order.updatedAt = new Date();
+        order.cancel_images = images;
+        // push quantity back to inventory
+        const inventoryUpdates: InventoryUpdate[] = order.item.map((item) => ({
+          productDetailId: item.product_detail_id,
+          quantity: item.quantity,
+        }));
+        await this.updateInventory(inventoryUpdates, tran);
+        await tran.save(OrdersEntity, order);
+        await this.redis.del(`order:${order.id}:user:${order.user_id}`);
+        const updatedOrder = await tran.findOne(OrdersEntity, {
+          where: { id: order.id },
+          relations: ['item'],
+        });
+        if (!updatedOrder) {
+          throw new NotFoundException('Không tìm thấy đơn hàng sau khi cập nhật');
+        }
+        return updatedOrder;
       })
-      if (!order) {
-        throw new NotFoundException('Không tìm thấy đơn hàng');
-      }
 
-      const allowedStatusesToCancel = [
-        OrderStatus.CREATED,
-        OrderStatus.PAYMENT_PENDING,
-        OrderStatus.PROCESSING,
-        OrderStatus.SHIPPING,
-      ];
+    } catch (error) {
+      Logger.error('Error in cancelOrReturnOrder:', error);
+      throw new BadRequestException('Có lỗi xảy ra khi hủy hoặc trả đơn hàng');
+    }
 
-      if (!allowedStatusesToCancel.includes(order.status)) {
-        throw new BadRequestException(
-          `Không thể hủy đơn hàng với trạng thái hiện tại: ${order.status}`
-        );
-      }
-
-      order.status = dto.status;
-      order.cancelReason =  dto.reason || 'Người dùng đã hủy đơn hàng';
-      order.updatedAt = new Date();
-      // push quantity back to inventory
-      const inventoryUpdates: InventoryUpdate[] = order.item.map((item) => ({
-        productDetailId: item.product_detail_id,
-        quantity: item.quantity,
-      }));
-      await this.updateInventory(inventoryUpdates, tran);
-      await tran.save(OrdersEntity, order);
-      await this.redis.del(`order:${order.id}:user:${order.user_id}`);
-      const updatedOrder = await tran.findOne(OrdersEntity, {
-        where: { id: order.id },
-        relations: ['item'],
-      });
-      if (!updatedOrder) {
-        throw new NotFoundException('Không tìm thấy đơn hàng sau khi cập nhật');
-      }
-      return updatedOrder;
-    })
-      
   }
   async upsert(createOrderDto: CreateOrdersDto) {
 

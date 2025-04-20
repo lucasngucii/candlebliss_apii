@@ -8,13 +8,16 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrdersDto } from './dto/create-order.dto';
-import { ApiCreatedResponse, ApiParam, ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
-import { OrdersEntity } from './entity/order.entity';
+import { ApiCreatedResponse, ApiParam, ApiTags, ApiResponse, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { OrdersEntity, OrderStatus } from './entity/order.entity';
 import { AddRatingDto, QueryCancelOrderDto, QueryOrderByLimitAndOffsetDto, QueryOrdersByStatusAllDto, QueryOrdersByStatusDto, StatisticsQueryDto, TimeFilterEnum, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
 import { StatisticsResponseDto } from './dto/res.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('orders')
 @ApiTags('Order')
@@ -85,8 +88,8 @@ export class OrdersController {
   }
 
   @Patch('cancel-or-return/:id')
-
   @ApiCreatedResponse({
+    description: 'Order cancellation or return processed successfully.',
     type: OrdersEntity,
   })
   @ApiParam({
@@ -95,12 +98,37 @@ export class OrdersController {
     description: 'ID of the order to update',
     type: Number,
   })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string', example: 'Khách yêu cầu huỷ vì giao hàng trễ' },
+        status: {
+          type: 'string',
+          enum: Object.values(OrderStatus),
+          example: OrderStatus.CANCELLED,
+        },
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+          description: 'Danh sách ảnh minh chứng huỷ hoặc trả hàng',
+        },
+      },
+      required: ['status', 'reason'],
+    },
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('images', 10))
   @HttpCode(HttpStatus.OK)
   async cancelOrReturnOrder(
     @Param('id') id: number,
-    @Query() cancelOrder: QueryCancelOrderDto
+    @Body() cancelOrder: QueryCancelOrderDto,
+    @UploadedFiles() images: Express.Multer.File[],
   ) {
-    return await this.service.cancelOrReturnOrder(id, cancelOrder);
+    return await this.service.cancelOrReturnOrder(id, cancelOrder, images);
   }
 
   @Get('all')

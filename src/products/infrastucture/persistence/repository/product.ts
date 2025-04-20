@@ -49,14 +49,22 @@ export class ProductRelationalRepository implements ProductRepository {
     await this.productRepository.save(entity);
   }
   async findById(id: Product['id']): Promise<Product> {
-    const entity = await this.productRepository.findOne({
-      where: { id, isDeleted: false },
-      relations: ['details'],
-    });
-    if (!entity) {
-      throw new NotFoundException(`Product ${id} not found.`);
+    const entity = await this.productRepository.query(`
+      SELECT 
+        p.*,
+        COALESCE(AVG(r.rating), 0) as rating,
+        COUNT(r.id) as rating_count
+      FROM product p
+      LEFT JOIN rating r ON p.id = r.product_id
+      WHERE p.id = $1 AND p.isDeleted = false
+      GROUP BY p.id
+    `, [id]);
+    
+    if (!entity.length) {
+      throw new NotFoundException(`Không tìm thấy sản phẩm với ID: ${id}`);
     }
-    return entity;
+    
+    return entity[0];
   }
   async findAll(): Promise<Product[]> {
     return await this.productRepository.find({ where: { isDeleted: false } });

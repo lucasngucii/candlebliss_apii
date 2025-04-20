@@ -22,7 +22,6 @@ export class ProductDetailService {
     if (imagesDto.length) {
       images = await this.imagesService.uploadCloudImages(imagesDto);
     }
-    console.log(images);
 
     const product = await this.productRepository.findById(dto.product_id);
 

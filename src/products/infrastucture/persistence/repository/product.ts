@@ -11,7 +11,7 @@ export class ProductRelationalRepository implements ProductRepository {
   constructor(
     @InjectRepository(ProductEntity)
     private readonly productRepository: Repository<ProductEntity>,
-  ) {}
+  ) { }
 
   async create(data: Product): Promise<Product> {
     const product = await this.productRepository.findOne({
@@ -49,22 +49,27 @@ export class ProductRelationalRepository implements ProductRepository {
     await this.productRepository.save(entity);
   }
   async findById(id: Product['id']): Promise<Product> {
-    const entity = await this.productRepository.query(`
-      SELECT 
-        p.*,
-        COALESCE(AVG(r.rating), 0) as rating,
-        COUNT(r.id) as rating_count
-      FROM product p
-      LEFT JOIN rating r ON p.id = r.product_id
-      WHERE p.id = $1 AND p."isDeleted" = false
-      GROUP BY p.id
-    `, [id]);
-    
-    if (!entity.length) {
+    const entity = await this.productRepository.createQueryBuilder('p')
+      .leftJoinAndSelect('p.images', 'i')
+      .leftJoinAndSelect('p.details', 'pd')
+      .leftJoin('rating', 'r', 'p.id = r.product_id')
+      .select([
+        'p',
+        'i',
+        'pd',
+        'COALESCE(AVG(r.rating), 0) as rating',
+        'COUNT(r.id) as rating_count'
+      ])
+      .where('p.id = :id', { id })
+      .andWhere('p.isDeleted = :isDeleted', { isDeleted: false })
+      .groupBy('p.id, i.id, pd.id')
+      .getOne();
+
+    if (!entity) {
       throw new NotFoundException(`Không tìm thấy sản phẩm với ID: ${id}`);
     }
-    
-    return entity[0];
+
+    return entity;
   }
   async findAll(): Promise<Product[]> {
     return await this.productRepository.find({ where: { isDeleted: false } });

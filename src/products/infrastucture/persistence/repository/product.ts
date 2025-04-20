@@ -56,7 +56,7 @@ export class ProductRelationalRepository implements ProductRepository {
         COUNT(r.id) as rating_count
       FROM product p
       LEFT JOIN rating r ON p.id = r.product_id
-      WHERE p.id = $1 AND p.isDeleted = false
+      WHERE p.id = $1 AND p."isDeleted" = false
       GROUP BY p.id
     `, [id]);
     

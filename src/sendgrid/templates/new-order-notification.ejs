@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Thông báo đơn hàng mới</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+      padding: 20px;
+    "
+  >
+    <div
+      style="
+        max-width: 600px;
+        margin: auto;
+        border: 1px solid #ddd;
+        padding: 20px;
+      "
+    >
+      <div style="text-align: center">
+        <img width="50px" height="50px" src="./logo.jpg" alt="" />
+      </div>
+
+      <h2 style="text-align: center; color: #5b3924">
+        Có đơn hàng mới tại <b><%= full_name %></b>!
+      </h2>
+      <p>
+        Xin thông báo bạn có 1 đơn hàng mới, hãy mau chóng xử lý đơn hàng ngay!
+      </p>
+
+      <p>
+        <b>Mã đơn hàng:</b>
+        <span style="color: #bf360c"><%= order_code %></span>
+      </p>
+
+      <h3>Đơn hàng được giao đến</h3>
+      <p><b>Tên:</b> <%= receiver_full_name %></p>
+      <p><b>Số điện thoại:</b> <%= receiver_phone %></p>
+      <p><b>Địa chỉ:</b> <%= receiver_address %></p>
+
+      <h3>Kiện hàng</h3>
+
+      <% products.forEach(function(product) { %>
+      <div style="display: flex; margin-bottom: 15px">
+        <img
+          src="<%= product.product_image %>"
+          alt="<%= product.product_name %>"
+          style="
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            margin-right: 15px;
+          "
+        />
+        <div>
+          <p><b><%= product.product_name %></b></p>
+          <p>Số lượng: <%= product.product_quantity %></p>
+          <% if (product.product_variant) { %>
+          <p style="padding-top: 5px">
+            Variant: <%= product.product_variant %>
+          </p>
+          <% } %>
+          <p>Thành tiền: <%= product.product_price %> VND</p>
+        </div>
+      </div>
+      <% }); %>
+
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px">
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px">Tổng tiền hàng</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: right">
+            <%= total_price %> VND
+          </td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px">
+            Phương thức vận chuyển
+          </td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: right">
+            <%= delivery_method %>
+          </td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px">Phí vận chuyển</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: right">
+            <%= shipping_fee %> VND
+          </td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px">
+            Phương thức thanh toán
+          </td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: right">
+            <%= payment_method %>
+          </td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px">
+            <b>Thành tiền</b>
+          </td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: right">
+            <b><%= total_amount %> VND</b>
+          </td>
+        </tr>
+      </table>
+
+      <div style="text-align: center; margin-top: 30px">
+        <a
+          href="<%= order_detail_url %>"
+          style="
+            display: inline-block;
+            background-color: #5b3924;
+            color: white;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+          "
+          >Xem chi tiết đơn hàng</a
+        >
+      </div>
+
+      <div
+        style="
+          margin-top: 30px;
+          font-size: 12px;
+          color: #777;
+          text-align: center;
+        "
+      >
+        <p>
+          Bạn nhận được email này vì bạn đang thực hiện một hành động trên
+          <b><%= full_name %></b>.
+        </p>
+        <p>
+          Nếu bạn không thể thực hiện, vui lòng liên hệ:
+          <a href="mailto:support@candlebliss.vn">support@candlebliss.vn</a>
+        </p>
+      </div>
+
+      <div style="text-align: center; margin-top: 10px">
+        <p>Chính sách Cookie | Hủy đăng ký</p>
+      </div>
+    </div>
+  </body>
+</html>

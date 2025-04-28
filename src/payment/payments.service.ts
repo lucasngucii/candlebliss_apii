@@ -1,6 +1,5 @@
 import {
   BadGatewayException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,7 +21,7 @@ export class PaymentService {
     const secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
     const orderInfo = 'pay with MoMo';
     const partnerCode = 'MOMO';
-    const redirectUrl = process.env.PUBLIC_URL + '/docs';
+    const redirectUrl = process.env.REDIRECT_URL;
     const ipnUrl = process.env.PUBLIC_URL + '/api/payments/callback';
     const requestType = 'payWithMethod';
     const amount = total;
@@ -105,9 +104,14 @@ export class PaymentService {
   }
 
   async pay(orderId: string): Promise<MoMoResponse | OrdersEntity> {
+    const statuses = [OrderStatus.CREATED, OrderStatus.PAYMENT_PENDING];
+
     const queryResult = (await this.orderRepository.query(
-      'SELECT total_price,user_id FROM orders WHERE orders.id = $1 AND orders.status::text LIKE $2',
-      [orderId, OrderStatus.CREATED],
+      `SELECT total_price, user_id 
+   FROM orders 
+   WHERE orders.id = $1 
+     AND orders.status = ANY($2)`,
+      [orderId, statuses],
     )) as OrdersEntity[];
 
     if (queryResult.length <= 0)
@@ -122,8 +126,8 @@ export class PaymentService {
     });
     setTimeout(async () => {
       const foundOrder = (await this.orderRepository.query(
-        'SELECT total_price,user_id FROM orders WHERE orders.id = $1 AND orders.status::text LIKE $2',
-        [orderId, OrderStatus.CREATED],
+        'SELECT total_price,user_id FROM orders WHERE orders.id = $1',
+        [orderId],
       )) as OrdersEntity;
       if (foundOrder.status == OrderStatus.PAYMENT_PENDING)
         await this.orderRepository.update(orderId, {

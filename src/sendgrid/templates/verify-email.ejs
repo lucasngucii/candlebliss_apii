@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Xác thực email</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    "
+  >
+    <div style="max-width: 600px; margin: 0 auto; padding: 30px">
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #5f370e" />
+
+      <!-- Nội dung chính -->
+      <div style="text-align: center">
+        <h2 style="color: #5f370e">
+          Xác thực email tại <strong><em>Candel Bliss</em></strong
+          >!
+        </h2>
+      </div>
+
+      <div style="font-size: 16px; line-height: 1.5; margin-top: 20px">
+        <p>Xin chào,</p>
+        <p>
+          Cảm ơn bạn đã đăng ký tài khoản mua sắm tại
+          <strong>Candel Bliss</strong>, mã xác thực email của bạn là:
+        </p>
+
+        <div style="text-align: center; margin: 30px 0">
+          <p style="font-size: 28px; font-weight: bold; color: #000">
+            <%= verification_code %>
+          </p>
+        </div>
+
+        <p>Vui lòng nhập mã xác thực để tiếp tục các bước tiếp theo.</p>
+        <p>Trân trọng!</p>
+      </div>
+
+      <!-- Footer -->
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd" />
+
+      <div
+        style="
+          text-align: center;
+          font-size: 14px;
+          color: #5f370e;
+          margin-top: 20px;
+        "
+      >
+        Bạn nhận được email này vì bạn đang thực hiện một hành động trên Candel
+        Bliss.
+      </div>
+    </div>
+  </body>
+</html>

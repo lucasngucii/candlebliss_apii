@@ -39,6 +39,8 @@ import queueConfig from './queue/config/queue.config';
 import cloudinaryConfig from './cloudinary/config/cloudinary.config';
 import { PaymentsModule } from './payment/payments.module';
 import { SendGridModule } from './sendgrid/sendgrid.module';
+import { RatingModule } from './rating/rating.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
   useClass: TypeOrmConfigService,
@@ -112,6 +114,8 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     RedisModule,
     PaymentsModule,
     SendGridModule,
+    RatingModule,
+    InventoryModule,
   ],
 })
 export class AppModule {}

@@ -46,6 +46,7 @@ export class ProductDetailRelationalRepository
     const entity = await this.detailRepository
       .createQueryBuilder('detail')
       .where('detail.id = :id', { id })
+      .leftJoinAndSelect('detail.images', 'images')
       .andWhere('detail.isDeleted = false')
       .getOne();
     return entity ? entity : null;

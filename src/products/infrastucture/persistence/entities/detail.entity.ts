@@ -26,10 +26,13 @@ export class ProductDetailEntity extends EntityRelationalHelper {
   isActive?: boolean;
 
   @Column({ type: Number, default: 0 })
-  quantities?: number;
+  quantities: number;
 
   @Column({ type: String, default: '' })
   values: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  rating: number;
 
   @ManyToOne(() => ProductEntity, (product) => product.details)
   product?: ProductEntity;

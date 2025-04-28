@@ -8,12 +8,16 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrdersDto } from './dto/create-order.dto';
-import { ApiCreatedResponse, ApiParam, ApiTags } from '@nestjs/swagger';
-import { OrdersEntity } from './entity/order.entity';
-import { QueryOrderByLimitAndOffsetDto, QueryOrdersByStatusDto, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
+import { ApiCreatedResponse, ApiParam, ApiTags, ApiResponse, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { OrdersEntity, OrderStatus } from './entity/order.entity';
+import { AddRatingDto, QueryCancelOrderDto, QueryOrderByLimitAndOffsetDto, QueryOrdersByStatusAllDto, QueryOrdersByStatusDto, StatisticsQueryDto, TimeFilterEnum, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
+import { StatisticsResponseDto } from './dto/res.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('orders')
 @ApiTags('Order')
@@ -38,6 +42,105 @@ export class OrdersController {
     return this.service.getOrdersByUserId(userId);
   }
 
+  @Get('statistics')
+  @ApiOperation({
+    summary: 'Lấy thống kê doanh thu',
+    description: 'API trả về thống kê doanh thu theo tháng, tuần hoặc năm'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Thống kê doanh thu thành công',
+    type: StatisticsResponseDto
+  })
+  @HttpCode(HttpStatus.OK)
+  async getStatistics(@Query() query: StatisticsQueryDto) {
+    const { timeFilter = TimeFilterEnum.MONTH, timeValue, year } = query;
+    const yearValue = year || new Date().getFullYear();
+
+    let timeValueParam = timeValue;
+    if (!timeValueParam) {
+      if (timeFilter === TimeFilterEnum.MONTH) {
+        timeValueParam = new Date().getMonth() + 1; // Tháng hiện tại (1-12)
+      } else if (timeFilter === TimeFilterEnum.WEEK) {
+        // Tính số tuần hiện tại trong năm
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 1);
+        const diff = now.getTime() - start.getTime();
+        const oneWeek = 1000 * 60 * 60 * 24 * 7;
+        timeValueParam = Math.ceil(diff / oneWeek);
+      } else {
+        timeValueParam = yearValue; // Nếu là năm thì dùng năm hiện tại
+      }
+    }
+
+    const statistics = await this.service.getStatistics(timeFilter, timeValueParam, yearValue);
+
+    return {
+      timeFilter,
+      timeValue: timeValueParam,
+      year: yearValue,
+      totalRevenue: statistics.totalRevenue, // Tổng doanh thu
+      totalOrderValue: statistics.totalOrderValue, // Tổng giá trị đơn hàng (không bao gồm phí vận chuyển)
+      totalShippingFee: statistics.totalShippingFee, // Tổng phí vận chuyển
+      totalOrders: statistics.totalOrders, // Tổng số đơn hàng
+      totalQuantities: statistics.totalQuantity, // Tổng số sản phẩm
+    };
+  }
+
+  @Patch('cancel-or-return/:id')
+  @ApiCreatedResponse({
+    description: 'Order cancellation or return processed successfully.',
+    type: OrdersEntity,
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'ID of the order to update',
+    type: Number,
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string', example: 'Khách yêu cầu huỷ vì giao hàng trễ' },
+        status: {
+          type: 'string',
+          enum: Object.values(OrderStatus),
+          example: OrderStatus.CANCELLED,
+        },
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+          description: 'Danh sách ảnh minh chứng huỷ hoặc trả hàng',
+        },
+      },
+      required: ['status', 'reason'],
+    },
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('images', 10))
+  @HttpCode(HttpStatus.OK)
+  async cancelOrReturnOrder(
+    @Param('id') id: number,
+    @Body() cancelOrder: QueryCancelOrderDto,
+    @UploadedFiles() images: Express.Multer.File[],
+  ) {
+    return await this.service.cancelOrReturnOrder(id, cancelOrder, images);
+  }
+
+  @Get('all')
+  @ApiCreatedResponse({
+    type: OrdersEntity,
+  })
+  @HttpCode(HttpStatus.OK)
+  async getAllOrders() {
+    return await this.service.getAllOrders();
+  }
+
+
   @Get('status')
   @ApiCreatedResponse({
     type: OrdersEntity,
@@ -45,6 +148,15 @@ export class OrdersController {
   @HttpCode(HttpStatus.OK)
   getOrdersByStatus(@Query() query: QueryOrdersByStatusDto) {
     return this.service.getOrderByUserIdAndStatus(query);
+  }
+
+  @Get('all/status')
+  @ApiCreatedResponse({
+    type: OrdersEntity,
+  })
+  @HttpCode(HttpStatus.OK)
+  getOrdersByStatusAll(@Query() query: QueryOrdersByStatusAllDto) {
+    return this.service.getAllOrderByStatus(query);
   }
 
   @Get('limit-offset')
@@ -58,7 +170,7 @@ export class OrdersController {
     const { user_id, offset, limit } = dto;
     return this.service.findOrdersByUserId(user_id, offset, limit);
   }
-  
+
   @Get(':id')
   @ApiCreatedResponse({
     type: OrdersEntity,
@@ -86,6 +198,22 @@ export class OrdersController {
     return await this.service.findAndUpdateOrderStatusById(id, status);
   }
 
+  @Patch(':id/status/complete')
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'ID of the order to update',
+    type: Number,
+  })
+
+  @HttpCode(HttpStatus.OK)
+  async updateOrderAndRating(
+    @Param('id') id: number,
+    @Query() rating: AddRatingDto
+  ) {
+    return await this.service.findAndUpdateOrderStatusCompletedById(id, rating);
+  }
+
   @Patch(':id/method-payment')
   @ApiCreatedResponse({
     type: OrdersEntity,
@@ -106,6 +234,5 @@ export class OrdersController {
       methodPayment,
     );
   }
-
 
 }

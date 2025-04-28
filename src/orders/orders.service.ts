@@ -1,9 +1,10 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { EntityManager, In, Repository } from 'typeorm';
+import { Between, EntityManager, In, Repository } from 'typeorm';
 import { CreateOrdersDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrdersEntity, OrderStatus } from './entity/order.entity';
@@ -13,22 +14,152 @@ import { RedisService } from '../redis/redis.service';
 import { ProductDetailEntity } from '../products/infrastucture/persistence/entities/detail.entity';
 import { VouchersEntity } from '../vouchers/infrastructure/persistence/entities/voucher.entity';
 import {
+  AddRatingDto,
+  QueryCancelOrderDto,
+  QueryOrdersByStatusAllDto,
   QueryOrdersByStatusDto,
   UpsertOrderByStatusDto,
   UpsertOrderPaymentMethodDto,
 } from './dto/query.dto';
-import { console } from 'inspector';
+
+import { Image } from '../images/domain/image'; 
+import { ImagesService } from '../images/images.service';
+
+
+interface InventoryUpdate {
+  productDetailId: number;
+  quantity: number;
+}
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly entityManager: EntityManager,
     @InjectRepository(OrdersEntity)
     private readonly orderRepository: Repository<OrdersEntity>,
-    @InjectRepository(OrderItem)
-    private readonly itemRepository: Repository<OrderItem>,
     private redis: RedisService,
-  ) {}
+    private readonly imagesService: ImagesService,
+  ) { }
+  async getAllOrders(): Promise<OrdersEntity[]> {
+    const orders = await this.entityManager.find(OrdersEntity, {
+      where: { isDeleted: false },
+      relations: ['item'],
+      order: { createdAt: 'DESC' },
+    })
+    if (!orders) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    return orders;
+  }
 
+  async getAllOrderByStatus(query: QueryOrdersByStatusAllDto): Promise<OrdersEntity[]> {
+    const orders = await this.orderRepository.find({
+      where: { status: query.status as OrderStatus, isDeleted: false },
+      relations: ['item'],
+      order: { createdAt: 'DESC' },
+    });
+    if (!orders) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    return orders;
+  }
+  async caculateOrdersDateToDate(startDate: Date, endDate: Date) {
+    const entities = await this.getAlllOrderByDate(startDate, endDate);
+    const filteredEntities = entities.filter(
+      (order) => order.status === OrderStatus.COMPLETED,
+    );
+    const totalPriceAndShipped = filteredEntities.reduce((sum, order) => {
+      return sum + Number(order.total_price);
+    }, 0);
+
+    const totalQuantity = filteredEntities.reduce((sum, order) => {
+      return sum + Number(order.total_quantity);
+    }, 0);
+
+    const totalPriceShipped = filteredEntities.reduce((sum, order) => {
+      return sum + Number(order.ship_price || 0);
+    }, 0);
+
+    return {
+      totalRevenue: totalPriceAndShipped, // Tổng doanh thu (bao gồm phí vận chuyển)
+      totalOrderValue: totalPriceAndShipped - totalPriceShipped, // Tổng giá trị đơn hàng (không bao gồm phí vận chuyển)
+      totalShippingFee: totalPriceShipped, // Tổng phí vận chuyển
+      totalOrders: filteredEntities.length, // Tổng số đơn hàng
+      totalQuantity: totalQuantity, // Tổng số lượng sản phẩm
+    };
+  }
+  /**
+   * Lấy thống kê theo tháng
+   */
+  async getStatisticsByMonth(year: number, month: number) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+    return this.caculateOrdersDateToDate(startDate, endDate);
+  }
+  /**
+     * Lấy thống kê theo tuần
+     * @param weekNumber Số tuần trong năm (1-52)
+     */
+  async getStatisticsByWeek(year: number, weekNumber: number) {
+    // Tính ngày đầu tiên của tuần
+    const firstDayOfYear = new Date(year, 0, 1);
+    const daysOffset = (weekNumber - 1) * 7;
+
+    // Tính ngày bắt đầu của tuần (thứ 2)
+    const startDate = new Date(year, 0, 1 + daysOffset - firstDayOfYear.getDay() + 1);
+
+    // Tính ngày kết thúc của tuần (chủ nhật)
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    endDate.setHours(23, 59, 59, 999);
+
+    return this.caculateOrdersDateToDate(startDate, endDate);
+  }
+  /**
+  * Lấy thống kê theo năm
+  */
+  async getStatisticsByYear(year: number) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+
+    return this.caculateOrdersDateToDate(startDate, endDate);
+  }
+
+  /**
+   * Hàm chung để lấy thống kê theo khoảng thời gian
+   * @param timeFilter Loại bộ lọc: 'month', 'week', 'year'
+   * @param timeValue Giá trị thời gian tương ứng
+   * @param year Năm
+   */
+  async getStatistics(timeFilter: 'month' | 'week' | 'year', timeValue: number, year: number) {
+    switch (timeFilter) {
+      case 'month':
+        return this.getStatisticsByMonth(year, timeValue);
+      case 'week':
+        return this.getStatisticsByWeek(year, timeValue);
+      case 'year':
+        return this.getStatisticsByYear(timeValue);
+      default:
+        throw new Error('Loại bộ lọc thời gian không hợp lệ');
+    }
+  }
+  async getAlllOrderByDate(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<OrdersEntity[]> {
+    const orders = await this.orderRepository.find({
+      where: {
+        createdAt: Between(startDate, endDate),
+        isDeleted: false,
+      },
+      relations: ['item'],
+      order: { createdAt: 'DESC' },
+    });
+    if (!orders) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    return orders;
+  }
   async getOrdersByUserId(userId: number): Promise<OrdersEntity[]> {
     const orders = await this.orderRepository.find({
       where: { user_id: userId, isDeleted: false },
@@ -77,22 +208,67 @@ export class OrdersService {
     }
     return orders[0];
   }
+  async cancelOrReturnOrder(id: number, dto: QueryCancelOrderDto, imagesDto: Express.Multer.File[]): Promise<OrdersEntity> {
+    try {
+      let images: Image[] = [];
+      if (imagesDto.length) {
+        images = await this.imagesService.uploadCloudImages(imagesDto);
+      }
 
-  async upsert(createOrderDto: CreateOrdersDto) {
-    const today = new Date().toISOString().split('T')[0];
+      return await this.entityManager.transaction(async (tran) => {
+        const order = await tran.findOne(OrdersEntity, {
+          where: { id: id, isDeleted: false },
+          relations: ['item'],
+        })
+        if (!order) {
+          throw new NotFoundException('Không tìm thấy đơn hàng');
+        }
 
-    const key = `order:lock:user:${createOrderDto.user_id}:${today}`;
+        // const allowedStatusesToCancel = [
+        //   OrderStatus.CREATED,
+        //   OrderStatus.PAYMENT_PENDING,
+        //   OrderStatus.PROCESSING,
+        //   OrderStatus.SHIPPING,
+        // ];
 
-    const lockAcquired = await this.redis.set(key, 'lock', 10);
+        // if (!allowedStatusesToCancel.includes(order.status)) {
+        //   throw new BadRequestException(
+        //     `Không thể hủy đơn hàng với trạng thái hiện tại: ${order.status}`
+        //   );
+        // }
 
-    if (!lockAcquired) {
-      throw new BadRequestException(
-        'Thao tác đang được xử lý, vui lòng thử lại sau',
-      );
+        order.status = dto.status;
+        order.cancelReason = dto.reason || 'Người dùng đã hủy đơn hàng';
+        order.updatedAt = new Date();
+        order.cancel_images = images;
+        // push quantity back to inventory
+        const inventoryUpdates: InventoryUpdate[] = order.item.map((item) => ({
+          productDetailId: item.product_detail_id,
+          quantity: item.quantity,
+        }));
+        await this.updateInventory(inventoryUpdates, tran);
+        await tran.save(OrdersEntity, order);
+        await this.redis.del(`order:${order.id}:user:${order.user_id}`);
+        const updatedOrder = await tran.findOne(OrdersEntity, {
+          where: { id: order.id },
+          relations: ['item'],
+        });
+        if (!updatedOrder) {
+          throw new NotFoundException('Không tìm thấy đơn hàng sau khi cập nhật');
+        }
+        return updatedOrder;
+      })
+
+    } catch (error) {
+      Logger.error('Error in cancelOrReturnOrder:', error);
+      throw new BadRequestException('Có lỗi xảy ra khi hủy hoặc trả đơn hàng');
     }
+
+  }
+  async upsert(createOrderDto: CreateOrdersDto) {
+
     return await this.entityManager.transaction(async (tran) => {
       let order = await this.findOrCreateOrder(createOrderDto, tran);
-
       const loadProduct = await this.batchLoadProductDetails(
         createOrderDto.item,
         tran,
@@ -101,6 +277,7 @@ export class OrdersService {
         createOrderDto.item,
         order.id,
         loadProduct.productDetailMap,
+        loadProduct.productMap,
         tran,
       );
 
@@ -147,6 +324,7 @@ export class OrdersService {
       order.total_quantity = totalQuantity;
       order.ship_price = 30000;
       order.discount = discountAmount;
+      order.total_price = order.total_price + order.ship_price;
       order.method_payment = '';
       order = await tran.save(OrdersEntity, order);
 
@@ -171,9 +349,48 @@ export class OrdersService {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
     const orderEntity = order[0];
-    this.validateStatusTransition(orderEntity.status, statusDto.status);
+    // this.validateStatusTransition(orderEntity.status, statusDto.status);
     orderEntity.status = statusDto.status;
     await this.invalidateOrderCache(orderId, orderEntity.user_id);
+    return await this.orderRepository.save(orderEntity);
+  }
+  /*
+    TODO: cần fix lại
+  */
+  async findAndUpdateOrderStatusCompletedById(
+    orderId: number,
+    ratingDto: AddRatingDto,
+  ): Promise<OrdersEntity> {
+    const query = `
+      SELECT o.* FROM orders o
+      WHERE o.id = $1
+    `;
+    const order = await this.orderRepository.query(query, [orderId]);
+    if (!order) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    const orderEntity = order[0];
+    orderEntity.status = OrderStatus.COMPLETED;
+    orderEntity.rating = ratingDto.rating;
+
+    const listProductIds = orderEntity.item.map((item) => item.product_detail_id);
+
+    const listProductDetails = await this.entityManager.query(
+      `
+      SELECT * FROM product_detail
+      WHERE id IN (${listProductIds.join(',')})
+    `,
+    );
+    const listProductIdsMap = new Map<number, any>();
+    listProductDetails.forEach((item) => {
+      listProductIdsMap.set(item.id, item);
+    });
+    const listProductDetailIds = orderEntity.item.map((item) => item.product_detail_id);
+    const listProductDetailIdsMap = new Map<number, any>();
+    listProductDetailIds.forEach((item) => {
+      listProductDetailIdsMap.set(item, item);
+    });
+
     return await this.orderRepository.save(orderEntity);
   }
 
@@ -237,7 +454,7 @@ export class OrdersService {
         throw new NotFoundException('Không tìm thấy đơn hàng');
       }
 
-      this.validateStatusTransition(order.status, status);
+      // this.validateStatusTransition(order.status, status);
       order.status = status;
       await this.invalidateOrderCache(orderId, order.user_id);
       return await tran.save(order);
@@ -317,8 +534,17 @@ export class OrdersService {
     productMap: Map<number, any>;
   }> {
     const productDetailIds = items
-      .map((item) => item.product_detail_id)
-      .filter((id) => id !== undefined);
+      .map((item) => Number(item.product_detail_id))
+      .filter((id) => !isNaN(id));
+
+    if (productDetailIds.length === 0) {
+      return {
+        productDetailMap: new Map(),
+        productMap: new Map(),
+      };
+    }
+
+    const placeholders = productDetailIds.map((_, idx) => `$${idx + 1}`).join(',');
     const rows = await transaction.query(
       `
       SELECT 
@@ -333,7 +559,7 @@ export class OrdersService {
       JOIN product pr ON pr.id = pd."productId"
       JOIN prices p ON p."productDetailId" = pd.id
       WHERE 
-        pd.id IN (${productDetailIds.map((_, idx) => `$${idx + 1}`).join(',')})
+        pd.id IN (${placeholders})
         AND pd."isActive" = true
         AND p.start_date <= CURRENT_TIMESTAMP
         AND p.end_date >= CURRENT_TIMESTAMP
@@ -346,6 +572,8 @@ export class OrdersService {
     const productMap = new Map<number, any>();
 
     for (const row of rows) {
+      if (!row.id || !row.product_id) continue;
+
       productDetailMap.set(row.id, {
         size: row.size,
         values: row.values,
@@ -365,45 +593,74 @@ export class OrdersService {
     return { productDetailMap, productMap };
   }
 
+  /**
+ * Cập nhật tồn kho cho nhiều sản phẩm
+ * @param updates Danh sách các cập nhật tồn kho
+ * @param transactionManager Entity manager để thực hiện giao dịch
+ */
+  private async updateInventory(
+    updates: InventoryUpdate[],
+    transactionManager: EntityManager,
+  ): Promise<void> {
+    for (const update of updates) {
+      await transactionManager.increment(
+        ProductDetailEntity,
+        { id: update.productDetailId },
+        'quantities',
+        update.quantity,
+      );
+    }
+  }
+  /**
+   * Xử lý danh sách các order items đã được tối ưu hóa
+   * @param itemDtos Danh sách các item cần xử lý
+   * @param orderId ID của đơn hàng
+   * @param productDetailsMap Map chứa thông tin chi tiết sản phẩm
+   * @param productMap Map chứa thông tin sản phẩm
+   * @param transactionManager Entity manager để thực hiện giao dịch
+   * @returns Danh sách các OrderItem đã được xử lý
+   */
   async processOrderItemsOptimized(
     itemDtos: CreateItemDto[],
     orderId: number,
     productDetailsMap: Map<number, any>,
+    productMap: Map<number, any>,
     transactionManager: EntityManager,
-  ) {
+  ): Promise<OrderItem[]> {
     const existingItems = await transactionManager.find(OrderItem, {
       where: { order: { id: orderId } },
     });
 
-    const existingItemMap = new Map();
-
+    // Tạo map để truy cập nhanh vào các item hiện có
+    const existingItemMap = new Map<number, OrderItem>();
     for (const item of existingItems) {
       existingItemMap.set(item.product_detail_id, item);
     }
-
     const itemsToCreate: OrderItem[] = [];
     const itemsToUpdate: OrderItem[] = [];
     const itemsToRemove: OrderItem[] = [];
-    const inventoryUpdates: Array<{
-      productDetailId: number;
-      quantity: number;
-    }> = [];
+    const inventoryUpdates: InventoryUpdate[] = [];
     const currentProductDetailIds = new Set<number>();
 
     for (const itemDto of itemDtos) {
+      const productDetailId = Number(itemDto.product_detail_id);
+
+      // Xử lý trường hợp số lượng <= 0 (xóa item)
       if (itemDto.quantity <= 0) {
-        const existingItem = existingItemMap.get(itemDto.product_detail_id);
+        const existingItem = existingItemMap.get(productDetailId);
         if (existingItem) {
           itemsToRemove.push(existingItem);
+          // Trả lại số lượng cho kho
           inventoryUpdates.push({
-            productDetailId: itemDto.product_detail_id,
-            quantity: existingItem.quantity, // Add back to inventory
+            productDetailId,
+            quantity: existingItem.quantity,
           });
         }
         continue;
       }
 
-      currentProductDetailIds.add(itemDto.product_detail_id);
+      currentProductDetailIds.add(productDetailId);
+
       const pd = productDetailsMap.get(itemDto.product_detail_id);
 
       if (!pd) {
@@ -415,14 +672,13 @@ export class OrdersService {
         );
       }
 
-      const existingItem = existingItemMap.get(itemDto.product_detail_id);
+      const existingItem = existingItemMap.get(productDetailId);
       const currentQuantityInCart = existingItem ? existingItem.quantity : 0;
-
       const quantityChange = itemDto.quantity - currentQuantityInCart;
 
       if (quantityChange > 0 && pd.available_quantity < quantityChange) {
         throw new BadRequestException(
-          `Số lượng sản phẩm (ID: ${itemDto.product_detail_id}) không đủ. Còn lại: ${pd.available_quantity}`,
+          `Số lượng sản phẩm (ID: ${productDetailId}) không đủ. Còn lại: ${pd.available_quantity}`,
         );
       }
 
@@ -443,11 +699,13 @@ export class OrdersService {
       if (existingItem) {
         existingItem.quantity = itemDto.quantity;
         existingItem.totalPrice = total_price;
-        existingItem.unitPrice = price;
+        existingItem.unit_price = price;
         itemsToUpdate.push(existingItem);
+
       } else {
         itemsToCreate.push({
           product_detail_id: Number(itemDto.product_detail_id),
+          product_id: pd.product_id,
           unit_price: price,
           quantity: itemDto.quantity,
           totalPrice: total_price,
@@ -475,14 +733,6 @@ export class OrdersService {
       const idsToRemove = itemsToRemove.map((item) => item.id);
       await transactionManager.delete(OrderItem, { id: In(idsToRemove) });
     }
-    // 1. Remove items
-    if (itemsToCreate.length > 0) {
-      const createdItems = await transactionManager.save(
-        OrderItem,
-        itemsToCreate,
-      );
-      result = [...result, ...createdItems];
-    }
     // 2. Create new items
 
     if (itemsToCreate.length > 0) {
@@ -498,14 +748,7 @@ export class OrdersService {
     }
 
     // 4. Update inventory
-    for (const update of inventoryUpdates) {
-      await transactionManager.increment(
-        ProductDetailEntity,
-        { id: update.productDetailId },
-        'quantities',
-        update.quantity,
-      );
-    }
+    await this.updateInventory(inventoryUpdates, transactionManager);
 
     return result;
   }
@@ -531,6 +774,7 @@ export class OrdersService {
       [OrderStatus.CREATED]: [
         OrderStatus.PAYMENT_PENDING,
         OrderStatus.CANCELLED,
+        OrderStatus.PROCESSING
       ],
       [OrderStatus.PAYMENT_PENDING]: [
         OrderStatus.PAYMENT_SUCCESS,
@@ -550,7 +794,11 @@ export class OrdersService {
       [OrderStatus.SHIPPING]: [OrderStatus.COMPLETED, OrderStatus.RETURNING],
       [OrderStatus.RETURNING]: [
         OrderStatus.COMPLETED,
-        OrderStatus.PAYMENT_REFUND_PENDING,
+        OrderStatus.RETURN_ACCEPTED,
+        OrderStatus.RETURN_REJECTED,
+        OrderStatus.RETURN_ACCEPTED,
+        OrderStatus.PROCESSING,
+        OrderStatus.SHIPPING,
       ],
       [OrderStatus.PAYMENT_REFUND_PENDING]: [
         OrderStatus.PAYMENT_REFUND_SUCCESS,
@@ -568,6 +816,8 @@ export class OrdersService {
       );
     }
   }
+
+
 
   private async invalidateOrderCache(
     orderId: number,

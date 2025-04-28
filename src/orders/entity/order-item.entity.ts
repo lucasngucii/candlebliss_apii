@@ -16,6 +16,9 @@ export class OrderItem extends EntityRelationalHelper {
   @Column({ type: Number, nullable: true })
   product_detail_id: number;
 
+  @Column({ type: String, nullable: true })
+  product_id: string;
+
   @Column({ type: Number, default: 0 })
   quantity: number;
 

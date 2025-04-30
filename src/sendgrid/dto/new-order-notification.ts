@@ -1,5 +1,4 @@
 export class NewOrderNotificationDto {
-  full_name: string;
   order_code: string;
   order_detail_url: string;
   receiver_full_name: string;

@@ -11,7 +11,6 @@ export class SendGridController {
     await this.sendGridService.sendEmailAdminNewOrderNotification({
       to: 'giabao13n@gmail.com',
       context: {
-        full_name: 'Candel Bliss',
         order_code: 'ORDER-R5MZ-240814-031825',
         order_detail_url: `https://dev.candlebliss.vn/order/review?q=123456`,
         receiver_full_name: 'Mai Xuân Toàn',

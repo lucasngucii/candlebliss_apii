@@ -6,10 +6,11 @@ import { OrdersEntity } from './entity/order.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { RedisModule } from '../redis/redis.module';
 import { ImagesModule } from '../images/images.module';
+import { SendGridModule } from '../sendgrid/sendgrid.module';
 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrdersEntity, OrderItem]), RedisModule, ImagesModule],
+  imports: [TypeOrmModule.forFeature([OrdersEntity, OrderItem]), RedisModule, ImagesModule,SendGridModule],
   providers: [OrdersService],
   controllers: [OrdersController],
 })

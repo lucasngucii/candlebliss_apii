@@ -14,6 +14,5 @@ export class NewOrderNotificationDto {
   total_price: string;
   delivery_method: string;
   shipping_fee: string;
-  payment_method: string;
   total_amount: string;
 }

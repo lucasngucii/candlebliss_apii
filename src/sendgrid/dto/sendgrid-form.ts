@@ -2,6 +2,8 @@ import { ForgetPasswordFormDTO } from './forget-password';
 import { NewMailFormDTO } from './new-mail';
 import { NewOrderNotificationDto } from './new-order-notification';
 import { OtpForm } from './otp';
+import { PaymentSuccessEmailDto } from './payment-success';
+import { OrderReceivedEmailDto } from './received-order';
 
 export class SendGridFormDTO {
   to: string;
@@ -9,5 +11,7 @@ export class SendGridFormDTO {
     | NewOrderNotificationDto
     | OtpForm
     | ForgetPasswordFormDTO
-    | NewMailFormDTO;
+    | NewMailFormDTO
+    | PaymentSuccessEmailDto
+    | OrderReceivedEmailDto;
 }

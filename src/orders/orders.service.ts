@@ -26,7 +26,7 @@ import { Image } from '../images/domain/image';
 import { ImagesService } from '../images/images.service';
 import { SendGridService } from '../sendgrid/sendgrid.service';
 import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
-import { NewOrderNotificationDto } from '../sendgrid/dto';
+import { NewOrderNotificationDto, OrderReceivedEmailDto } from '../sendgrid/dto';
 
 interface InventoryUpdate {
   productDetailId: number;
@@ -375,14 +375,14 @@ export class OrdersService {
             product_image: item.path,
             product_name: item.name,
             product_variant: item.size,
-            unit_price: item.final_price,
+            product_price: parseFloat(item.final_price),
           };
         });
         await this.sendGridService.sendEmailAdminNewOrderNotification({
           to: foundUser?.email,
           context: {
             order_code: order.id.toString(),
-            order_detail_url: 'Cái này là link chi tiết đơn hàng bên FE',
+            order_detail_url: process.env.FRONTEND_DOMAIN+"/user/order/"+order.id,
             receiver_full_name:
               foundUser?.firstName + ' ' + foundUser?.lastName,
             receiver_phone: foundUser.phone
@@ -392,7 +392,6 @@ export class OrdersService {
             products: listProductDetails,
             total_price: order.total_price.toString(),
             delivery_method: 'Nhà bán tự giao',
-            payment_method: order.method_payment,
             shipping_fee: order.ship_price.toString(),
             total_amount: order.total_price.toString(),
           } as NewOrderNotificationDto,
@@ -442,7 +441,21 @@ export class OrdersService {
     const orderEntity = order[0];
     orderEntity.status = OrderStatus.COMPLETED;
     orderEntity.rating = ratingDto.rating;
-
+    const foundUser = await this.entityManager.findOne(UserEntity,{
+      where: { id: orderEntity.user_id },
+    })
+    if(foundUser?.email) {
+      const orderReceivedEmailDto: OrderReceivedEmailDto = {
+        order_code: orderEntity.order_code,
+        customer_name: foundUser.firstName + ' ' + foundUser.lastName,
+        received_date: new Date().toISOString(),
+        total_amount: orderEntity.total_price.toString(),
+      };
+      await this.sendGridService.sendEmailReceivedOrder({
+        to: foundUser.email,
+        context: orderReceivedEmailDto,
+      });
+    }
     const listProductIds = orderEntity.item.map(
       (item) => item.product_detail_id,
     );

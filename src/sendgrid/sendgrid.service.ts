@@ -3,7 +3,9 @@ import { Injectable } from '@nestjs/common';
 import {
   NewMailFormDTO,
   NewOrderNotificationDto,
+  OrderReceivedEmailDto,
   OtpForm,
+  PaymentSuccessEmailDto,
   SendGridFormDTO,
 } from './dto';
 import { ForgetPasswordFormDTO } from './dto/forget-password';
@@ -20,6 +22,24 @@ export class SendGridService {
     });
   }
 
+  async sendEmailPaymentOrderSuccess(sendGridFormDTO: SendGridFormDTO) {
+    await this.mailerService.sendMail({
+      to: sendGridFormDTO.to,
+      subject: 'Welcome to Candle Bliss',
+      template: 'payment-success',
+      context: sendGridFormDTO.context as PaymentSuccessEmailDto,
+    });
+  }
+
+
+  async sendEmailReceivedOrder(sendGridFormDTO: SendGridFormDTO) {
+    await this.mailerService.sendMail({
+      to: sendGridFormDTO.to,
+      subject: 'Welcome to Candle Bliss',
+      template: 'received',
+      context: sendGridFormDTO.context as OrderReceivedEmailDto,
+    });
+  }
   async sendForgetPassword(sendGridFormDTO: SendGridFormDTO) {
     await this.mailerService.sendMail({
       to: sendGridFormDTO.to,

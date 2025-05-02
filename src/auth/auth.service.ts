@@ -33,6 +33,7 @@ import { AuthUpdateDto } from './dto/auth-update.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { JwtPayloadType } from './strategies/types/jwt-payload.type';
 import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
+import { format } from 'date-fns';
 
 @Injectable()
 export class AuthService {
@@ -230,7 +231,7 @@ export class AuthService {
     await this.sendGridService.sendOtp({
       to: dto.email,
       context: {
-        verification_code: hash,
+        verification_code: process.env.FRONTEND_DOMAIN+"/register/confirm/" + hash,
       } as OtpForm,
     });
   }
@@ -351,8 +352,8 @@ export class AuthService {
     await this.sendGridService.sendForgetPassword({
       to: email,
       context: {
-        hash,
-        tokenExpires,
+        hash:process.env.FRONTEND_DOMAIN+"/reset-password/" + hash,
+        tokenExpires : format(new Date(tokenExpires), 'dd-MM-yyyy HH:mm')
       } as ForgetPasswordFormDTO,
     });
   }

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Thanh toán thành công</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; background-color: #fff; color: #333; padding: 20px;">
+    <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 30px;">
+      <div style="text-align: center">
+        <img width="50px" height="50px" src="https://res.cloudinary.com/dlrionk8h/image/upload/v1746177368/anh2_m7zr2k.jpg" alt="Candel Bliss Logo" />
+      </div>
+
+      <h2 style="color: #5b3924; text-align: center">
+        Cảm ơn bạn <%= customer_name %> đã thanh toán thành công!
+      </h2>
+
+      <p>Chúng tôi đã nhận được khoản thanh toán cho đơn hàng của bạn tại <strong>Candel Bliss</strong>.</p>
+
+      <p><strong>Mã đơn hàng:</strong> <%= order_code %></p>
+      <p><strong>Phương thức thanh toán:</strong> <%= payment_method %></p>
+      <p><strong>Thời gian thanh toán:</strong> <%= payment_time %></p>
+      <p><strong>Tổng thanh toán:</strong> <%= total_amount %> VND</p>
+
+      <div style="margin-top: 30px; text-align: center">
+        <a href="<%= order_detail_url %>" style="background-color: #5b3924; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px;">Xem chi tiết đơn hàng</a>
+      </div>
+
+      <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd" />
+
+      <div style="text-align: center; font-size: 14px; color: #777;">
+        Cảm ơn bạn đã mua sắm tại <strong>Candel Bliss</strong>.
+      </div>
+    </div>
+  </body>
+</html>

@@ -5,29 +5,35 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import ms from 'ms';
-import crypto from 'crypto';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
-import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
-import { AuthUpdateDto } from './dto/auth-update.dto';
-import { AuthProvidersEnum } from './auth-providers.enum';
-import { SocialInterface } from '../social/interfaces/social.interface';
-import { AuthRegisterLoginDto } from './dto/auth-register-login.dto';
-import { NullableType } from '../utils/types/nullable.type';
-import { LoginResponseDto } from './dto/login-response.dto';
-import { ConfigService } from '@nestjs/config';
-import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
-import { JwtPayloadType } from './strategies/types/jwt-payload.type';
-import { UsersService } from '../users/users.service';
+import crypto from 'crypto';
+import ms from 'ms';
 import { AllConfigType } from '../config/config.type';
-import { MailService } from '../mail/mail.service';
 import { RoleEnum } from '../roles/roles.enum';
+import {
+  ForgetPasswordFormDTO,
+  NewMailFormDTO,
+  OtpForm,
+} from '../sendgrid/dto';
+import { SendGridService } from '../sendgrid/sendgrid.service';
 import { Session } from '../session/domain/session';
 import { SessionService } from '../session/session.service';
+import { SocialInterface } from '../social/interfaces/social.interface';
 import { StatusEnum } from '../statuses/statuses.enum';
 import { User } from '../users/domain/user';
+import { UsersService } from '../users/users.service';
+import { NullableType } from '../utils/types/nullable.type';
+import { AuthProvidersEnum } from './auth-providers.enum';
+import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
+import { AuthRegisterLoginDto } from './dto/auth-register-login.dto';
+import { AuthUpdateDto } from './dto/auth-update.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
+import { JwtPayloadType } from './strategies/types/jwt-payload.type';
+import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
+import { format } from 'date-fns';
 
 @Injectable()
 export class AuthService {
@@ -35,8 +41,8 @@ export class AuthService {
     private jwtService: JwtService,
     private usersService: UsersService,
     private sessionService: SessionService,
-    private mailService: MailService,
     private configService: ConfigService<AllConfigType>,
+    private sendGridService: SendGridService,
   ) {}
 
   async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
@@ -222,11 +228,11 @@ export class AuthService {
       },
     );
 
-    await this.mailService.userSignUp({
+    await this.sendGridService.sendOtp({
       to: dto.email,
-      data: {
-        hash,
-      },
+      context: {
+        verification_code: process.env.FRONTEND_DOMAIN+"/register/confirm/" + hash,
+      } as OtpForm,
     });
   }
 
@@ -343,12 +349,12 @@ export class AuthService {
       },
     );
 
-    await this.mailService.forgotPassword({
+    await this.sendGridService.sendForgetPassword({
       to: email,
-      data: {
-        hash,
-        tokenExpires,
-      },
+      context: {
+        hash:process.env.FRONTEND_DOMAIN+"/reset-password/" + hash,
+        tokenExpires : format(new Date(tokenExpires), 'dd-MM-yyyy HH:mm')
+      } as ForgetPasswordFormDTO,
     });
   }
 
@@ -479,11 +485,11 @@ export class AuthService {
         },
       );
 
-      await this.mailService.confirmNewEmail({
+      await this.sendGridService.sendNewMail({
         to: userDto.email,
-        data: {
+        context: {
           hash,
-        },
+        } as NewMailFormDTO,
       });
     }
 

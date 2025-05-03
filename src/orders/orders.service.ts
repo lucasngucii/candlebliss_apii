@@ -24,7 +24,9 @@ import {
 
 import { Image } from '../images/domain/image';
 import { ImagesService } from '../images/images.service';
-
+import { SendGridService } from '../sendgrid/sendgrid.service';
+import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
+import { NewOrderNotificationDto, OrderReceivedEmailDto } from '../sendgrid/dto';
 
 interface InventoryUpdate {
   productDetailId: number;
@@ -38,20 +40,23 @@ export class OrdersService {
     private readonly orderRepository: Repository<OrdersEntity>,
     private redis: RedisService,
     private readonly imagesService: ImagesService,
-  ) { }
+    private sendGridService: SendGridService,
+  ) {}
   async getAllOrders(): Promise<OrdersEntity[]> {
     const orders = await this.entityManager.find(OrdersEntity, {
       where: { isDeleted: false },
       relations: ['item'],
       order: { createdAt: 'DESC' },
-    })
+    });
     if (!orders) {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
     return orders;
   }
 
-  async getAllOrderByStatus(query: QueryOrdersByStatusAllDto): Promise<OrdersEntity[]> {
+  async getAllOrderByStatus(
+    query: QueryOrdersByStatusAllDto,
+  ): Promise<OrdersEntity[]> {
     const orders = await this.orderRepository.find({
       where: { status: query.status as OrderStatus, isDeleted: false },
       relations: ['item'],
@@ -97,16 +102,20 @@ export class OrdersService {
     return this.caculateOrdersDateToDate(startDate, endDate);
   }
   /**
-     * Lấy thống kê theo tuần
-     * @param weekNumber Số tuần trong năm (1-52)
-     */
+   * Lấy thống kê theo tuần
+   * @param weekNumber Số tuần trong năm (1-52)
+   */
   async getStatisticsByWeek(year: number, weekNumber: number) {
     // Tính ngày đầu tiên của tuần
     const firstDayOfYear = new Date(year, 0, 1);
     const daysOffset = (weekNumber - 1) * 7;
 
     // Tính ngày bắt đầu của tuần (thứ 2)
-    const startDate = new Date(year, 0, 1 + daysOffset - firstDayOfYear.getDay() + 1);
+    const startDate = new Date(
+      year,
+      0,
+      1 + daysOffset - firstDayOfYear.getDay() + 1,
+    );
 
     // Tính ngày kết thúc của tuần (chủ nhật)
     const endDate = new Date(startDate);
@@ -116,8 +125,8 @@ export class OrdersService {
     return this.caculateOrdersDateToDate(startDate, endDate);
   }
   /**
-  * Lấy thống kê theo năm
-  */
+   * Lấy thống kê theo năm
+   */
   async getStatisticsByYear(year: number) {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
@@ -131,7 +140,11 @@ export class OrdersService {
    * @param timeValue Giá trị thời gian tương ứng
    * @param year Năm
    */
-  async getStatistics(timeFilter: 'month' | 'week' | 'year', timeValue: number, year: number) {
+  async getStatistics(
+    timeFilter: 'month' | 'week' | 'year',
+    timeValue: number,
+    year: number,
+  ) {
     switch (timeFilter) {
       case 'month':
         return this.getStatisticsByMonth(year, timeValue);
@@ -208,7 +221,11 @@ export class OrdersService {
     }
     return orders[0];
   }
-  async cancelOrReturnOrder(id: number, dto: QueryCancelOrderDto, imagesDto: Express.Multer.File[]): Promise<OrdersEntity> {
+  async cancelOrReturnOrder(
+    id: number,
+    dto: QueryCancelOrderDto,
+    imagesDto: Express.Multer.File[],
+  ): Promise<OrdersEntity> {
     try {
       let images: Image[] = [];
       if (imagesDto.length) {
@@ -219,7 +236,7 @@ export class OrdersService {
         const order = await tran.findOne(OrdersEntity, {
           where: { id: id, isDeleted: false },
           relations: ['item'],
-        })
+        });
         if (!order) {
           throw new NotFoundException('Không tìm thấy đơn hàng');
         }
@@ -254,19 +271,18 @@ export class OrdersService {
           relations: ['item'],
         });
         if (!updatedOrder) {
-          throw new NotFoundException('Không tìm thấy đơn hàng sau khi cập nhật');
+          throw new NotFoundException(
+            'Không tìm thấy đơn hàng sau khi cập nhật',
+          );
         }
         return updatedOrder;
-      })
-
+      });
     } catch (error) {
       Logger.error('Error in cancelOrReturnOrder:', error);
       throw new BadRequestException('Có lỗi xảy ra khi hủy hoặc trả đơn hàng');
     }
-
   }
   async upsert(createOrderDto: CreateOrdersDto) {
-
     return await this.entityManager.transaction(async (tran) => {
       let order = await this.findOrCreateOrder(createOrderDto, tran);
       const loadProduct = await this.batchLoadProductDetails(
@@ -329,6 +345,59 @@ export class OrdersService {
       order = await tran.save(OrdersEntity, order);
 
       await this.cacheOrderData(order.id, createOrderDto.user_id, orderItems);
+      const foundUser = await this.entityManager.findOne(UserEntity, {
+        where: { id: createOrderDto.user_id },
+      });
+      if (foundUser?.email) {
+        const listIdsProductDetail = createOrderDto.item.reduce((acc, item) => {
+          if (item.product_detail_id) {
+            acc.push(item.product_detail_id);
+          }
+          return acc;
+        }, [] as number[]);
+        const result = await this.entityManager.query(
+          `
+        SELECT 
+          p.name, 
+          i.path, 
+          pd.size, 
+          (pr.base_price - pr.base_price / 100 * pr.discount_price) AS final_price
+        FROM product_detail pd
+        JOIN product p ON pd."productId" = p.id
+        JOIN image i ON pd.id = i."productDetailsId"
+        JOIN prices pr ON pr."productDetailId" = pd.id
+        WHERE pd.id =  ANY($1)
+      `,
+          [listIdsProductDetail],
+        );
+        const listProductDetails = result.map((item) => {
+          return {
+            product_image: item.path,
+            product_name: item.name,
+            product_variant: item.size,
+            product_price: parseFloat(item.final_price),
+          };
+        });
+        await this.sendGridService.sendEmailAdminNewOrderNotification({
+          to: foundUser?.email,
+          context: {
+            order_code: order.id.toString(),
+            order_detail_url: process.env.FRONTEND_DOMAIN+"/user/order/"+order.id,
+            receiver_full_name:
+              foundUser?.firstName + ' ' + foundUser?.lastName,
+            receiver_phone: foundUser.phone
+              ? foundUser.phone.toString()
+              : 'Chưa có số điện thoại',
+            receiver_address: order.address,
+            products: listProductDetails,
+            total_price: order.total_price.toString(),
+            delivery_method: 'Nhà bán tự giao',
+            shipping_fee: order.ship_price.toString(),
+            total_amount: order.total_price.toString(),
+          } as NewOrderNotificationDto,
+        });
+      }
+
       return await tran.findOne(OrdersEntity, {
         where: { id: order.id },
         relations: ['item'],
@@ -372,8 +441,24 @@ export class OrdersService {
     const orderEntity = order[0];
     orderEntity.status = OrderStatus.COMPLETED;
     orderEntity.rating = ratingDto.rating;
-
-    const listProductIds = orderEntity.item.map((item) => item.product_detail_id);
+    const foundUser = await this.entityManager.findOne(UserEntity,{
+      where: { id: orderEntity.user_id },
+    })
+    if(foundUser?.email) {
+      const orderReceivedEmailDto: OrderReceivedEmailDto = {
+        order_code: orderEntity.order_code,
+        customer_name: foundUser.firstName + ' ' + foundUser.lastName,
+        received_date: new Date().toISOString(),
+        total_amount: orderEntity.total_price.toString(),
+      };
+      await this.sendGridService.sendEmailReceivedOrder({
+        to: foundUser.email,
+        context: orderReceivedEmailDto,
+      });
+    }
+    const listProductIds = orderEntity.item.map(
+      (item) => item.product_detail_id,
+    );
 
     const listProductDetails = await this.entityManager.query(
       `
@@ -385,7 +470,9 @@ export class OrdersService {
     listProductDetails.forEach((item) => {
       listProductIdsMap.set(item.id, item);
     });
-    const listProductDetailIds = orderEntity.item.map((item) => item.product_detail_id);
+    const listProductDetailIds = orderEntity.item.map(
+      (item) => item.product_detail_id,
+    );
     const listProductDetailIdsMap = new Map<number, any>();
     listProductDetailIds.forEach((item) => {
       listProductDetailIdsMap.set(item, item);
@@ -544,7 +631,9 @@ export class OrdersService {
       };
     }
 
-    const placeholders = productDetailIds.map((_, idx) => `$${idx + 1}`).join(',');
+    const placeholders = productDetailIds
+      .map((_, idx) => `$${idx + 1}`)
+      .join(',');
     const rows = await transaction.query(
       `
       SELECT 
@@ -594,10 +683,10 @@ export class OrdersService {
   }
 
   /**
- * Cập nhật tồn kho cho nhiều sản phẩm
- * @param updates Danh sách các cập nhật tồn kho
- * @param transactionManager Entity manager để thực hiện giao dịch
- */
+   * Cập nhật tồn kho cho nhiều sản phẩm
+   * @param updates Danh sách các cập nhật tồn kho
+   * @param transactionManager Entity manager để thực hiện giao dịch
+   */
   private async updateInventory(
     updates: InventoryUpdate[],
     transactionManager: EntityManager,
@@ -701,7 +790,6 @@ export class OrdersService {
         existingItem.totalPrice = total_price;
         existingItem.unit_price = price;
         itemsToUpdate.push(existingItem);
-
       } else {
         itemsToCreate.push({
           product_detail_id: Number(itemDto.product_detail_id),
@@ -774,7 +862,7 @@ export class OrdersService {
       [OrderStatus.CREATED]: [
         OrderStatus.PAYMENT_PENDING,
         OrderStatus.CANCELLED,
-        OrderStatus.PROCESSING
+        OrderStatus.PROCESSING,
       ],
       [OrderStatus.PAYMENT_PENDING]: [
         OrderStatus.PAYMENT_SUCCESS,
@@ -816,8 +904,6 @@ export class OrdersService {
       );
     }
   }
-
-
 
   private async invalidateOrderCache(
     orderId: number,

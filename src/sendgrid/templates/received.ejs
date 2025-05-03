@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Nhận hàng thành công</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; background-color: #fff; color: #333; padding: 20px;">
+    <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 30px;">
+      <div style="text-align: center">
+        <img width="50px" height="50px" src="https://res.cloudinary.com/dlrionk8h/image/upload/v1746177368/anh2_m7zr2k.jpg" alt="Candel Bliss Logo" />
+      </div>
+
+      <h2 style="color: #5b3924; text-align: center">
+        Đơn hàng của bạn đã được giao thành công!
+      </h2>
+
+      <p>Xin chào <%= customer_name %>,</p>
+      <p>Chúng tôi xin thông báo rằng đơn hàng của bạn đã được giao thành công vào ngày <strong><%= received_date %></strong>.</p>
+
+      <p><strong>Mã đơn hàng:</strong> <%= order_code %></p>
+      <p><strong>Tổng thanh toán:</strong> <%= total_amount %> VND</p>
+
+      <div style="margin-top: 30px; text-align: center">
+        <p>Cảm ơn bạn đã tin tưởng <strong>Candel Bliss</strong>. Chúc bạn hài lòng với sản phẩm!</p>
+      </div>
+
+      <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd" />
+
+      <div style="text-align: center; font-size: 14px; color: #777;">
+        Cần hỗ trợ? Hãy liên hệ chúng tôi qua email: <a href="mailto:support@candlebliss.vn">support@candlebliss.vn</a>
+      </div>
+    </div>
+  </body>
+</html>

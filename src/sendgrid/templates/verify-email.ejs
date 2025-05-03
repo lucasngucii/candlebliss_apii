@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Xác thực email</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    "
+  >
+  <div style="text-align: center">
+    <img width="50px" height="50px" src="https://res.cloudinary.com/dlrionk8h/image/upload/v1746177368/anh2_m7zr2k.jpg" alt="Candel Bliss Logo" />
+  </div>
+    <div style="max-width: 600px; margin: 0 auto; padding: 30px">
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #5f370e" />
+
+      <!-- Nội dung chính -->
+      <div style="text-align: center">
+        <h2 style="color: #5f370e">
+          Xác thực email tại <strong><em>Candel Bliss</em></strong
+          >!
+        </h2>
+      </div>
+
+      <div style="font-size: 16px; line-height: 1.5; margin-top: 20px">
+        <p>Xin chào,</p>
+        <p>
+          Cảm ơn bạn đã đăng ký tài khoản mua sắm tại
+          <strong>Candel Bliss</strong>. Vui lòng nhấn vào nút bên dưới để xác
+          thực email của bạn:
+        </p>
+
+        <div style="text-align: center; margin: 30px 0">
+          <a
+            href="<%= verification_code %>"
+            style="
+              background-color: #5b3924;
+              color: #fff;
+              padding: 12px 24px;
+              text-decoration: none;
+              border-radius: 5px;
+              font-weight: bold;
+              font-size: 16px;
+            "
+            >Xác thực email</a
+          >
+        </div>
+
+        <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
+        <p>Trân trọng!</p>
+      </div>
+
+      <!-- Footer -->
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd" />
+
+      <div
+        style="
+          text-align: center;
+          font-size: 14px;
+          color: #5f370e;
+          margin-top: 20px;
+        "
+      >
+        Bạn nhận được email này vì bạn đã đăng ký tài khoản tại Candel Bliss.
+      </div>
+    </div>
+  </body>
+</html>

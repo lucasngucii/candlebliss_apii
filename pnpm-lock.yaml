@@ -80,6 +80,9 @@ importers:
       dotenv:
         specifier: 16.4.7
         version: 16.4.7
+      ejs:
+        specifier: ^3.1.10
+        version: 3.1.10
       fb:
         specifier: 2.0.0
         version: 2.0.0

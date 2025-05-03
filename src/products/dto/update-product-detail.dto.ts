@@ -2,6 +2,7 @@ import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { CreateProductDetailDto } from './create-product-detail.dto';
 import { IsInt, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Image } from 'src/images/domain/image';
 
 export class UpdateProductDetailDto extends PartialType(
   CreateProductDetailDto,
@@ -31,4 +32,7 @@ export class UpdateProductDetailDto extends PartialType(
   @IsOptional()
   @IsString()
   values: string;
+
+  @ApiPropertyOptional({ type: () => [Image] })
+  images?: Image[];
 }

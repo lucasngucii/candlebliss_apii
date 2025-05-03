@@ -7,7 +7,6 @@ import { ProductRepository } from './infrastucture/persistence/product.repositor
 import { ProductDetail } from './domain/product-detail';
 import { UpdateProductDetailDto } from './dto/update-product-detail.dto';
 import { EntityManager } from 'typeorm';
-import { ProductDetailEntity } from './infrastucture/persistence/entities/detail.entity';
 
 @Injectable()
 export class ProductDetailService {
@@ -41,33 +40,13 @@ export class ProductDetailService {
     let newImages: Image[] = [];
     if (images.length) {
       newImages = await this.imagesService.uploadCloudImages(images);
+      updateDetailDto = { ...updateDetailDto, images: newImages };
     }
-    return await this.entityManager.transaction(
-      async (transactionalEntityManager) => {
-        const entity = await transactionalEntityManager.query(
-          `
-          SELECT * FROM product_detail WHERE id = $1`,
-          [detailId],
-        );
-        if (!entity) {
-          throw new NotFoundException(
-            `Product Detail with id ${detailId} not found`,
-          );
-        }
-        const existingDetail = entity[0];
-
-        const updatedDetail = {
-          ...existingDetail,
-          ...updateDetailDto,
-          images: newImages.length ? newImages : existingDetail.images,
-        };
-
-        return await transactionalEntityManager.save(
-          ProductDetailEntity,
-          updatedDetail,
-        );
-      },
-    );
+    const updateDetail = await this.detailRepository.update(detailId, updateDetailDto)
+    if (!updateDetail) {
+      throw new NotFoundException(`Product Detail with id ${detailId} not found`);
+    }
+    return updateDetail;
   }
 
   async findById(detailId: ProductDetail['id']): Promise<ProductDetail> {

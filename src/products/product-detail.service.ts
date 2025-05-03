@@ -7,6 +7,7 @@ import { ProductRepository } from './infrastucture/persistence/product.repositor
 import { ProductDetail } from './domain/product-detail';
 import { UpdateProductDetailDto } from './dto/update-product-detail.dto';
 import { EntityManager } from 'typeorm';
+import { ProductDetailEntity } from './infrastucture/persistence/entities/detail.entity';
 
 @Injectable()
 export class ProductDetailService {
@@ -41,29 +42,32 @@ export class ProductDetailService {
     if (images.length) {
       newImages = await this.imagesService.uploadCloudImages(images);
     }
-  return await this.entityManager.transaction(async (transactionalEntityManager) => {
-    const existingDetail = await transactionalEntityManager.findOne(ProductDetail, {
-      where: { id: detailId }
-    });
+    return await this.entityManager.transaction(
+      async (transactionalEntityManager) => {
+        const entity = await transactionalEntityManager.query(
+          `
+          SELECT * FROM product_detail WHERE id = $1`,
+          [detailId],
+        );
+        if (!entity) {
+          throw new NotFoundException(
+            `Product Detail with id ${detailId} not found`,
+          );
+        }
+        const existingDetail = entity[0];
 
-    if (existingDetail) {
-      const updatedDetail = {
-        ...existingDetail,
-        ...updateDetailDto,
-        images: newImages.length ? newImages : existingDetail.images,
-      };
-      
-      return await transactionalEntityManager.save(ProductDetail, updatedDetail);
-    } else {
-      const newDetail = transactionalEntityManager.create(ProductDetail, {
-        id: detailId,
-        ...updateDetailDto,
-        images: newImages,
-      });
-      
-      return await transactionalEntityManager.save(ProductDetail, newDetail);
-    }
-  });
+        const updatedDetail = {
+          ...existingDetail,
+          ...updateDetailDto,
+          images: newImages.length ? newImages : existingDetail.images,
+        };
+
+        return await transactionalEntityManager.save(
+          ProductDetailEntity,
+          updatedDetail,
+        );
+      },
+    );
   }
 
   async findById(detailId: ProductDetail['id']): Promise<ProductDetail> {

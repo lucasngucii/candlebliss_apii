@@ -15,9 +15,10 @@ export class SendGridService {
     const filePath = path.join(process.cwd(), 'src', 'sendgrid', 'templates', `${template}.ejs`);
     return ejs.renderFile(filePath, context);
   }
-
+  // mail to sendgrid
   private async send(to: string, subject: string, template: string, context: any) {
     const html = await this.renderTemplate(template, context);
+    // send mail to sendgrid
     return sgMail.send({
       to,
       from: process.env.MAIL_USER as string,

@@ -1,69 +1,54 @@
-import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
+import sgMail from '@sendgrid/mail';
+import ejs from 'ejs';
+import path from 'path';
 import {
-  NewMailFormDTO,
-  NewOrderNotificationDto,
-  OrderReceivedEmailDto,
-  OtpForm,
-  PaymentSuccessEmailDto,
-  SendGridFormDTO,
+  SendGridFormDTO
 } from './dto';
-import { ForgetPasswordFormDTO } from './dto/forget-password';
 @Injectable()
 export class SendGridService {
-  constructor(private readonly mailerService: MailerService) {}
+  constructor() {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
+  }
 
-  async sendEmailAdminNewOrderNotification(sendGridFormDTO: SendGridFormDTO) {
-    await this.mailerService.sendMail({
-      to: sendGridFormDTO.to,
-      subject: 'Welcome to Candle Bliss',
-      template: 'new-order-notification',
-      context: sendGridFormDTO.context as NewOrderNotificationDto,
+  private  renderTemplate(template: string, context: any): Promise<string> {
+    const filePath = path.join(process.cwd(), 'src', 'sendgrid', 'templates', `${template}.ejs`);
+    return ejs.renderFile(filePath, context);
+  }
+  // mail to sendgrid
+  private async send(to: string, subject: string, template: string, context: any) {
+    const html = await this.renderTemplate(template, context);
+    // send mail to sendgrid
+    return sgMail.send({
+      to,
+      from: process.env.MAIL_USER as string,
+      subject,
+      html,
     });
   }
 
-  async sendEmailPaymentOrderSuccess(sendGridFormDTO: SendGridFormDTO) {
-    await this.mailerService.sendMail({
-      to: sendGridFormDTO.to,
-      subject: 'Welcome to Candle Bliss',
-      template: 'payment-success',
-      context: sendGridFormDTO.context as PaymentSuccessEmailDto,
-    });
+  async sendEmailAdminNewOrderNotification(dto: SendGridFormDTO) {
+    return this.send(dto.to, 'Welcome to Candle Bliss', 'new-order-notification', dto.context);
   }
 
-
-  async sendEmailReceivedOrder(sendGridFormDTO: SendGridFormDTO) {
-    await this.mailerService.sendMail({
-      to: sendGridFormDTO.to,
-      subject: 'Welcome to Candle Bliss',
-      template: 'received',
-      context: sendGridFormDTO.context as OrderReceivedEmailDto,
-    });
-  }
-  async sendForgetPassword(sendGridFormDTO: SendGridFormDTO) {
-    await this.mailerService.sendMail({
-      to: sendGridFormDTO.to,
-      subject: 'Forget Password',
-      template: 'forget-password',
-      context: sendGridFormDTO.context as ForgetPasswordFormDTO,
-    });
+  async sendEmailPaymentOrderSuccess(dto: SendGridFormDTO) {
+    return this.send(dto.to, 'Payment Success', 'payment-success', dto.context);
   }
 
-  async sendNewMail(sendGridFormDTO: SendGridFormDTO) {
-    await this.mailerService.sendMail({
-      to: sendGridFormDTO.to,
-      subject: 'Update new email',
-      template: 'new-mail',
-      context: sendGridFormDTO.context as NewMailFormDTO,
-    });
+  async sendEmailReceivedOrder(dto: SendGridFormDTO) {
+    return this.send(dto.to, 'Order Received', 'received', dto.context);
   }
 
-  async sendOtp(sendGridFormDTO: SendGridFormDTO) {
-    await this.mailerService.sendMail({
-      to: sendGridFormDTO.to,
-      subject: 'Verification code',
-      template: 'verify-email',
-      context: sendGridFormDTO.context as OtpForm,
-    });
+  async sendForgetPassword(dto: SendGridFormDTO) {
+    return this.send(dto.to, 'Reset Password', 'forget-password', dto.context);
+  }
+
+  async sendNewMail(dto: SendGridFormDTO) {
+    return this.send(dto.to, 'Email Updated', 'new-mail', dto.context);
+  }
+
+  async sendOtp(dto: SendGridFormDTO) {
+    return this.send(dto.to, 'Verification Code', 'verify-email', dto.context);
   }
 }
+

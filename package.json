@@ -62,6 +62,7 @@
     "cloudinary": "^2.5.1",
     "date-fns": "^4.1.0",
     "dotenv": "16.4.7",
+    "ejs": "^3.1.10",
     "fb": "2.0.0",
     "google-auth-library": "9.15.0",
     "handlebars": "4.7.8",

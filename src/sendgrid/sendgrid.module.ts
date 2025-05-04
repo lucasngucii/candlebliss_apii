@@ -1,41 +1,12 @@
 import { Global, Module } from '@nestjs/common';
-import { MailerModule } from '@nestjs-modules/mailer';
-import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
-import * as path from 'path';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { SendGridService } from './sendgrid.service';
+import { ConfigModule } from '@nestjs/config';
 import { SendGridController } from './sendgrid.controller';
+import { SendGridService } from './sendgrid.service';
 @Global()
 @Module({
-  imports: [
-    MailerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: () => ({
-        transport: {
-          host: 'smtp.sendgrid.net',
-          secure: true,
-          auth: {
-            user: 'apikey',
-            pass: process.env.SENDGRID_API_KEY,
-          },
-        },
-        defaults: {
-          from: '21081521.tu@student.iuh.edu.vn',
-        },
-        template: {
-          dir: path.join(process.cwd(), 'src', 'sendgrid', 'templates'),
-          adapter: new EjsAdapter(),
-          options: {
-            extname: '.ejs',
-          },
-        },
-      }),
-    }),
-    ConfigModule,
-  ],
-  controllers: [SendGridController],
+  imports: [ConfigModule],
   providers: [SendGridService],
+  controllers: [SendGridController],
   exports: [SendGridService],
 })
 export class SendGridModule {}

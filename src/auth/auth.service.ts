@@ -231,7 +231,7 @@ export class AuthService {
     await this.sendGridService.sendOtp({
       to: dto.email,
       context: {
-        verification_code: process.env.FRONTEND_DOMAIN+"/register/confirm/" + hash,
+        verification_code: process.env.FRONTEND_DOMAIN+"/user/signup/confirm/" + hash,
       } as OtpForm,
     });
   }
@@ -352,7 +352,7 @@ export class AuthService {
     await this.sendGridService.sendForgetPassword({
       to: email,
       context: {
-        hash:process.env.FRONTEND_DOMAIN+"/reset-password/" + hash,
+        hash:process.env.FRONTEND_DOMAIN+"/user/forgotpassword/" + hash,
         tokenExpires : format(new Date(tokenExpires), 'dd-MM-yyyy HH:mm')
       } as ForgetPasswordFormDTO,
     });

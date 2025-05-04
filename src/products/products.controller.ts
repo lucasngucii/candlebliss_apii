@@ -68,17 +68,6 @@ export class ProductsController {
         video: { type: 'string' },
         images: { type: 'array', items: { type: 'string', format: 'binary' } },
         category_id: { type: 'number' },
-        productDetail: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              size: { type: 'string' },
-              type: { type: 'string' },
-              quantities: { type: 'number' },
-            },
-          },
-        },
       },
     },
   })

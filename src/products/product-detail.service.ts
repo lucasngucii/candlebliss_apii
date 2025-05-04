@@ -40,30 +40,13 @@ export class ProductDetailService {
     let newImages: Image[] = [];
     if (images.length) {
       newImages = await this.imagesService.uploadCloudImages(images);
+      updateDetailDto = { ...updateDetailDto, images: newImages };
     }
-  return await this.entityManager.transaction(async (transactionalEntityManager) => {
-    const existingDetail = await transactionalEntityManager.findOne(ProductDetail, {
-      where: { id: detailId }
-    });
-
-    if (existingDetail) {
-      const updatedDetail = {
-        ...existingDetail,
-        ...updateDetailDto,
-        images: newImages.length ? newImages : existingDetail.images,
-      };
-      
-      return await transactionalEntityManager.save(ProductDetail, updatedDetail);
-    } else {
-      const newDetail = transactionalEntityManager.create(ProductDetail, {
-        id: detailId,
-        ...updateDetailDto,
-        images: newImages,
-      });
-      
-      return await transactionalEntityManager.save(ProductDetail, newDetail);
+    const updateDetail = await this.detailRepository.update(detailId, updateDetailDto)
+    if (!updateDetail) {
+      throw new NotFoundException(`Product Detail with id ${detailId} not found`);
     }
-  });
+    return updateDetail;
   }
 
   async findById(detailId: ProductDetail['id']): Promise<ProductDetail> {

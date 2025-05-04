@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 
 import {
-  ApiBearerAuth,
   ApiCreatedResponse,
   ApiParam,
   ApiTags,
@@ -59,7 +58,6 @@ export class VouchersController {
     return this.service.remove(id);
   }
 
-  @ApiBearerAuth()
   @Get()
   findAll() {
     return this.service.findAll();

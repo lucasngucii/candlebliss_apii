@@ -17,7 +17,6 @@ export class User {
     type: String,
     example: 'john.doe@example.com',
   })
-  @Expose({ groups: ['me', 'admin'] })
   email: string | null;
 
   @Exclude({ toPlainOnly: true })

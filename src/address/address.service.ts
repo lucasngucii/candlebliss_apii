@@ -25,6 +25,9 @@ export class AddressService {
   async remove(id: Address['id']): Promise<void> {
     await this.addressRepository.remove(id);
   }
+  async findByUserId(id: User['id']): Promise<Address> {
+    return await this.addressRepository.findByUserId(id);
+  }
 
   async findById(id: Address['id']): Promise<Address> {
     const address = await this.addressRepository.findById(id);

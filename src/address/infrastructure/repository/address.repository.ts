@@ -68,4 +68,15 @@ export class AddressRelationalRepository implements AddressRepository {
       relations: ['user'],
     });
   }
+  async findByUserId(userId: number): Promise<Address> {
+    const address = await this.addressRepository.findOne({
+      where: { user: { id: userId }, isDeleted: false },
+      relations: ['user'],
+    });
+    if (!address) {
+      throw new NotFoundException('Address not found');
+    }
+    return address;
+  }
 }
+

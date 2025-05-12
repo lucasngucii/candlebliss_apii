@@ -21,6 +21,7 @@ import { Address } from './domain/address';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { UpdateAddressDto } from './dto/update-address.dto';
+import { User } from '../users/domain/user';
 
 @Controller({ path: 'address', version: '1' })
 @ApiBearerAuth()
@@ -50,6 +51,21 @@ export class AddressController {
   findById(@Param('id') id: Address['id']): Promise<NullableType<Address>> {
     return this.service.findById(id);
   }
+
+  @ApiOkResponse({
+    type: Address,
+  })
+  @Get('user/:userId')
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({
+    name: 'userId',
+    type: Number,
+    required: true,
+  })
+  findByUserId(@Param('userId') id: User['id']): Promise<Address> {
+    return this.service.findByUserId(id);
+  }
+
 
   @ApiOkResponse({
     type: Address,

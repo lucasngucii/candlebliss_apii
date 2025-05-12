@@ -11,4 +11,6 @@ export abstract class AddressRepository {
   ): Promise<NullableType<Address>>;
   abstract remove(id: Address['id']): Promise<void>;
   abstract findManyByUserId(userId: number | string): Promise<Address[]>;
+
+  abstract findByUserId(userId: number | string): Promise<Address>;
 }

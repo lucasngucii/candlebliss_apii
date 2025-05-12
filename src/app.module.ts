@@ -30,7 +30,6 @@ import { ProductsModule } from './products/products.module';
 import { ImagesModule } from './images/images.module';
 import { PriceModule } from './price/price.module';
 import { VouchersModule } from './vouchers/vouchers.module';
-import { GiftsModule } from './gifts/gifts.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
@@ -41,6 +40,7 @@ import { PaymentsModule } from './payment/payments.module';
 import { SendGridModule } from './sendgrid/sendgrid.module';
 import { RatingModule } from './rating/rating.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { GiftModule } from './gift/gift.module';
 
 const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
   useClass: TypeOrmConfigService,
@@ -107,7 +107,6 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     ImagesModule,
     PriceModule,
     VouchersModule,
-    GiftsModule,
     CategoriesModule,
     CartModule,
     OrdersModule,
@@ -116,6 +115,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     SendGridModule,
     RatingModule,
     InventoryModule,
+    GiftModule,
   ],
 })
 export class AppModule {}

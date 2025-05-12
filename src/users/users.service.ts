@@ -149,6 +149,10 @@ export class UsersService {
     return this.usersRepository.findById(id);
   }
 
+  findAll(): Promise<User[]> {
+    return this.usersRepository.findAll();
+  }
+
   findByIds(ids: User['id'][]): Promise<User[]> {
     return this.usersRepository.findByIds(ids);
   }

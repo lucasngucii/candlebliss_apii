@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import {
   ApiConsumes,
   ApiCreatedResponse,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { ProductDetail } from './domain/product-detail';
@@ -101,7 +103,20 @@ export class ProductDetailsController {
   delete(@Param('id') detailId: ProductDetail['id']) {
     return this.detailService.remove(detailId);
   }
-
+  @ApiCreatedResponse({
+    type: [ProductDetail],
+  })
+  @ApiQuery({
+    type: [Number],
+    name: 'ids',
+    description: 'Array of Product Detail IDs',
+    isArray: true
+  })
+  @Get('list-product-detail')
+  findAll(@Query('ids') ids: string) {
+    const detailIds = ids.split(',').map(id => Number(id));
+    return this.detailService.findAll(detailIds);
+  }
   @ApiCreatedResponse({
     type: ProductDetail,
   })

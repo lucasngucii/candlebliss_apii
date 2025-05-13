@@ -58,6 +58,19 @@ export class ProductDetailService {
     }
     return entity;
   }
+
+  async findAll(detailIds: number[]): Promise<ProductDetail[]> {
+    const results = await Promise.allSettled(
+      detailIds.map((id) => this.detailRepository.findById(id)),
+    );
+    const productDetails = results
+      .filter(
+        (result) => result.status === 'fulfilled' && result.value !== null,
+      )
+      .map((result) => (result as PromiseFulfilledResult<ProductDetail>).value);
+
+    return productDetails;
+  }
   async remove(detailId: ProductDetail['id']): Promise<void> {
     await this.detailRepository.remove(detailId);
   }

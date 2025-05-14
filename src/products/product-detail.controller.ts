@@ -106,6 +106,14 @@ export class ProductDetailsController {
   @ApiCreatedResponse({
     type: [ProductDetail],
   })
+  @Get('all-product-details')
+  getAllProductDetails() {
+    return this.detailService.getAllProductDetails();
+  }
+
+  @ApiCreatedResponse({
+    type: [ProductDetail],
+  })
   @ApiQuery({
     type: [Number],
     name: 'ids',

@@ -3,7 +3,7 @@ import { NullableType } from '../../../../utils/types/nullable.type';
 import { ProductDetail } from '../../../domain/product-detail';
 import { ProductDetailRepository } from '../product-detail.repository';
 import { ProductDetailEntity } from '../entities/detail.entity';
-import { EntityManager, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
 export class ProductDetailRelationalRepository
   implements ProductDetailRepository
@@ -11,7 +11,6 @@ export class ProductDetailRelationalRepository
   constructor(
     @InjectRepository(ProductDetailEntity)
     private readonly detailRepository: Repository<ProductDetailEntity>,
-    private readonly entity: EntityManager,
   ) {}
   async findByIds(
     detailIds: ProductDetail['id'][],
@@ -58,5 +57,12 @@ export class ProductDetailRelationalRepository
     if (!entity) return;
     entity.isDeleted = true;
     await this.detailRepository.save(entity);
+  }
+
+  async findAll(): Promise<ProductDetail[]> {
+    return await this.detailRepository.createQueryBuilder('detail')
+      .leftJoinAndSelect('detail.images', 'images')
+      .andWhere('detail."isDeleted" = false')
+      .getMany();
   }
 }

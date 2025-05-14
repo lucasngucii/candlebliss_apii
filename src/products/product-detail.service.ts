@@ -6,7 +6,6 @@ import { Image } from '../images/domain/image';
 import { ProductRepository } from './infrastucture/persistence/product.repository';
 import { ProductDetail } from './domain/product-detail';
 import { UpdateProductDetailDto } from './dto/update-product-detail.dto';
-import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class ProductDetailService {
@@ -14,7 +13,6 @@ export class ProductDetailService {
     private readonly detailRepository: ProductDetailRepository,
     private readonly imagesService: ImagesService,
     private readonly productRepository: ProductRepository,
-    private readonly entityManager: EntityManager,
   ) {}
 
   async create(dto: CreateProductDetailDto, imagesDto: Express.Multer.File[]) {
@@ -70,6 +68,10 @@ export class ProductDetailService {
       .map((result) => (result as PromiseFulfilledResult<ProductDetail>).value);
 
     return productDetails;
+  }
+
+  async getAllProductDetails(): Promise<ProductDetail[]> {
+    return await this.detailRepository.findAll();
   }
   async remove(detailId: ProductDetail['id']): Promise<void> {
     await this.detailRepository.remove(detailId);

@@ -980,7 +980,7 @@ export class OrdersService {
       throw new BadRequestException('Voucher đã hết lượt sử dụng');
     }
 
-    if (voucher.min_order_value > total_price) {
+    if (voucher.min_order_value && Number(voucher.min_order_value) > total_price) {
       throw new BadRequestException(
         'Đơn hàng không đủ điều kiện sử dụng voucher',
       );
@@ -1043,13 +1043,6 @@ export class OrdersService {
         throw new BadRequestException('Voucher chỉ áp dụng cho khách hàng mới');
       }
     }
-
-    if (voucher.max_voucher_amount && Number(voucher.max_voucher_amount) > 0) {
-      if (voucher.max_voucher_amount < total_price) {
-        throw new BadRequestException('Voucher không áp dụng cho đơn hàng này');
-      }
-    }
-
     await this.entityManager.query(
       `
         UPDATE vouchers

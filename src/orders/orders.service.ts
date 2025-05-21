@@ -18,6 +18,7 @@ import {
   QueryCancelOrderDto,
   QueryOrdersByStatusAllDto,
   QueryOrdersByStatusDto,
+  TimeFilterEnum,
   UpsertOrderByStatusDto,
   UpsertOrderPaymentMethodDto,
 } from './dto/query.dto';
@@ -41,7 +42,7 @@ export class OrdersService {
     private redis: RedisService,
     private readonly imagesService: ImagesService,
     private sendGridService: SendGridService,
-  ) {}
+  ) { }
   async getAllOrders(): Promise<OrdersEntity[]> {
     const orders = await this.entityManager.find(OrdersEntity, {
       where: { isDeleted: false },
@@ -124,6 +125,7 @@ export class OrdersService {
 
     return this.caculateOrdersDateToDate(startDate, endDate);
   }
+
   /**
    * Lấy thống kê theo năm
    */
@@ -134,6 +136,22 @@ export class OrdersService {
     return this.caculateOrdersDateToDate(startDate, endDate);
   }
 
+  async getStatisticsByDate(
+    startDate: string,
+    endDate: string,
+  ): Promise<{
+    totalRevenue: number;
+    totalOrderValue: number;
+    totalShippingFee: number;
+    totalOrders: number;
+    totalQuantity: number;
+  }> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return this.caculateOrdersDateToDate(start, end);
+  }
+
+
   /**
    * Hàm chung để lấy thống kê theo khoảng thời gian
    * @param timeFilter Loại bộ lọc: 'month', 'week', 'year'
@@ -141,16 +159,16 @@ export class OrdersService {
    * @param year Năm
    */
   async getStatistics(
-    timeFilter: 'month' | 'week' | 'year',
+    timeFilter: TimeFilterEnum,
     timeValue: number,
     year: number,
   ) {
     switch (timeFilter) {
-      case 'month':
+      case TimeFilterEnum.MONTH:
         return this.getStatisticsByMonth(year, timeValue);
-      case 'week':
+      case TimeFilterEnum.WEEK:
         return this.getStatisticsByWeek(year, timeValue);
-      case 'year':
+      case TimeFilterEnum.YEAR:
         return this.getStatisticsByYear(timeValue);
       default:
         throw new Error('Loại bộ lọc thời gian không hợp lệ');
@@ -173,6 +191,8 @@ export class OrdersService {
     }
     return orders;
   }
+
+
   async getOrdersByUserId(userId: number): Promise<OrdersEntity[]> {
     const orders = await this.orderRepository.find({
       where: { user_id: userId, isDeleted: false },
@@ -240,19 +260,6 @@ export class OrdersService {
         if (!order) {
           throw new NotFoundException('Không tìm thấy đơn hàng');
         }
-
-        // const allowedStatusesToCancel = [
-        //   OrderStatus.CREATED,
-        //   OrderStatus.PAYMENT_PENDING,
-        //   OrderStatus.PROCESSING,
-        //   OrderStatus.SHIPPING,
-        // ];
-
-        // if (!allowedStatusesToCancel.includes(order.status)) {
-        //   throw new BadRequestException(
-        //     `Không thể hủy đơn hàng với trạng thái hiện tại: ${order.status}`
-        //   );
-        // }
 
         order.status = dto.status;
         order.cancelReason = dto.reason || 'Người dùng đã hủy đơn hàng';
@@ -382,7 +389,7 @@ export class OrdersService {
           to: foundUser?.email,
           context: {
             order_code: order.id.toString(),
-            order_detail_url: process.env.FRONTEND_DOMAIN+"/user/order/"+order.id,
+            order_detail_url: process.env.FRONTEND_DOMAIN + "/user/order/" + order.id,
             receiver_full_name:
               foundUser?.firstName + ' ' + foundUser?.lastName,
             receiver_phone: foundUser.phone
@@ -441,10 +448,10 @@ export class OrdersService {
     const orderEntity = order[0];
     orderEntity.status = OrderStatus.COMPLETED;
     orderEntity.rating = ratingDto.rating;
-    const foundUser = await this.entityManager.findOne(UserEntity,{
+    const foundUser = await this.entityManager.findOne(UserEntity, {
       where: { id: orderEntity.user_id },
     })
-    if(foundUser?.email) {
+    if (foundUser?.email) {
       const orderReceivedEmailDto: OrderReceivedEmailDto = {
         order_code: orderEntity.order_code,
         customer_name: foundUser.firstName + ' ' + foundUser.lastName,
@@ -1041,6 +1048,24 @@ export class OrdersService {
 
       if (isExistingCustomer) {
         throw new BadRequestException('Voucher chỉ áp dụng cho khách hàng mới');
+      }
+    }
+
+    if (voucher.is_svip_only && user_id) {
+      const query = `
+      SELECT COUNT(*) AS count
+      FROM orders
+      WHERE user_id = $1
+        AND "isDeleted" = false
+        AND status = $2
+      `
+      const result = await this.entityManager.query(query, [
+        user_id,
+        OrderStatus.COMPLETED
+      ]);
+      const orderCount = result[0].count;
+      if (Number(orderCount) < 20) {
+        throw new BadRequestException('Voucher chỉ áp dụng cho khách hàng SVIP');
       }
     }
     await this.entityManager.query(

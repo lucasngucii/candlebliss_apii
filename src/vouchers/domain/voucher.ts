@@ -38,6 +38,9 @@ export class Vouchers {
   @ApiProperty({ type: Date, example: new Date() })
   end_date: Date;
 
+  @ApiProperty({ type: Boolean, example: true, default: false })
+  is_svip_only?: boolean;
+  
   @ApiProperty({ type: () => [Product] })
   applicable_products?: Product[];
 

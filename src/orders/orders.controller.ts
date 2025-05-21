@@ -15,7 +15,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrdersDto } from './dto/create-order.dto';
 import { ApiCreatedResponse, ApiParam, ApiTags, ApiResponse, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { OrdersEntity, OrderStatus } from './entity/order.entity';
-import { AddRatingDto, QueryCancelOrderDto, QueryOrderByLimitAndOffsetDto, QueryOrdersByStatusAllDto, QueryOrdersByStatusDto, StatisticsQueryDto, TimeFilterEnum, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
+import { AddRatingDto, QueryCancelOrderDto, QueryDateToDateDto, QueryOrderByLimitAndOffsetDto, QueryOrdersByStatusAllDto, QueryOrdersByStatusDto, StatisticsQueryDto, TimeFilterEnum, UpsertOrderByStatusDto, UpsertOrderPaymentMethodDto } from './dto/query.dto';
 import { StatisticsResponseDto } from './dto/res.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
@@ -86,6 +86,34 @@ export class OrdersController {
       totalQuantities: statistics.totalQuantity, // Tổng số sản phẩm
     };
   }
+
+  @Get('statistics/date-to-date')
+  @ApiOperation({
+    summary: 'Lấy thống kê doanh thu theo khoảng thời gian',
+    description: 'API trả về thống kê doanh thu theo khoảng thời gian từ ngày bắt đầu đến ngày kết thúc'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Thống kê doanh thu thành công',
+    type: StatisticsResponseDto
+  })
+  @HttpCode(HttpStatus.OK)
+  async getStatisticsByDate(
+    @Query() query: QueryDateToDateDto,
+  ) {
+    const { startDate, endDate } = query;
+    const statistics = await this.service.getStatisticsByDate(startDate, endDate);
+
+    return {
+      totalRevenue: statistics.totalRevenue, // Tổng doanh thu
+      totalOrderValue: statistics.totalOrderValue, // Tổng giá trị đơn hàng (không bao gồm phí vận chuyển)
+      totalShippingFee: statistics.totalShippingFee, // Tổng phí vận chuyển
+      totalOrders: statistics.totalOrders, // Tổng số đơn hàng
+      totalQuantities: statistics.totalQuantity, // Tổng số sản phẩm
+    };
+  }
+
+
 
   @Patch('cancel-or-return/:id')
   @ApiCreatedResponse({

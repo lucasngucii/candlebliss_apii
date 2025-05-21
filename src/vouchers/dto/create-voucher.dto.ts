@@ -71,5 +71,10 @@ export class CreateVoucherDto {
   @ApiProperty({ example: true, type: Boolean })
   @IsOptional()
   @Type(() => Boolean)
+  is_svip_only?: boolean;
+
+  @ApiProperty({ example: true, type: Boolean })
+  @IsOptional()
+  @Type(() => Boolean)
   isActive?: boolean;
 }

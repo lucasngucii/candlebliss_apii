@@ -58,8 +58,28 @@ export enum TimeFilterEnum {
     MONTH = 'month',
     WEEK = 'week',
     YEAR = 'year',
+    DATE_TO_DATE = 'date_to_date',
 }
+export class QueryDateToDateDto {
+    @ApiProperty({
+        description: 'Ngày bắt đầu (yyyy-mm-dd)',
+        example: '2025-01-01',
+        required: false,
+    })
+    @IsString()
+    @IsOptional()
+    startDate: string;
 
+    @ApiProperty({
+        description: 'Ngày kết thúc (yyyy-mm-dd)',
+        example: '2025-01-31',
+        required: false,
+    })
+    @IsString()
+    @IsOptional()
+    endDate: string;
+
+}
 export class StatisticsQueryDto {
     @ApiProperty({
         description: 'Loại bộ lọc thời gian',

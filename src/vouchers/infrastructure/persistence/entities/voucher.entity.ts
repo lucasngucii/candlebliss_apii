@@ -47,6 +47,9 @@ export class VouchersEntity extends EntityRelationalHelper {
   @CreateDateColumn()
   end_date: Date;
 
+  @Column({ type: 'boolean', default: false })
+  is_svip_only?: boolean;
+
   @ManyToMany(() => ProductEntity)
   @JoinTable()
   applicable_products?: ProductEntity[];
